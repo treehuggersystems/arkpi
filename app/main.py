@@ -1052,6 +1052,13 @@ def precache_list():
 TLS_DIR = Path(os.environ.get("ARK_TLS_DIR", "/etc/ark-tls"))
 
 
+@app.get("/welcome", response_class=HTMLResponse)
+def welcome_page(request: Request):
+    """Landing page for the Wi-Fi captive portal: how to open and save ARK."""
+    host = request.url.hostname or "localhost"
+    return render("welcome.html", request, host=host, https_url=f"https://{host}/")
+
+
 @app.get("/install", response_class=HTMLResponse)
 def install_page(request: Request):
     secure = request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https"

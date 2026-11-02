@@ -12,7 +12,8 @@
 #   2. puts the app in /opt/offline-server (cloning or updating from GitHub)
 #   3. builds the Python venv and installs systemd services
 #   4. makes a local HTTPS certificate and the nginx site (needed to install the PWA)
-#   5. creates the Wi-Fi hotspot so phones can join with no router
+#   5. creates the Wi-Fi hotspot with a captive portal, so phones can join with no router
+#      and are taken straight to ARK (http://ark.local, no port number)
 #
 # Options (environment variables):
 #   ARK_SSID       Wi-Fi name                    (default: ARK)
@@ -94,6 +95,7 @@ say "Creating the local HTTPS certificate"
 mapfile -t IPS < <(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9.]+$' || true)
 "$DIR/scripts/make-certs.sh" "${IPS[@]}" 10.42.0.1 "$(hostname)" "$(hostname).local" ark.local localhost 127.0.0.1 >/dev/null
 
+rm -f /etc/nginx/sites-enabled/default      # ARK takes over port 80
 cp "$DIR/deploy/nginx-ark.conf" /etc/nginx/sites-available/ark
 ln -sf /etc/nginx/sites-available/ark /etc/nginx/sites-enabled/ark
 nginx -t 2>/dev/null || die "nginx config test failed (run: sudo nginx -t)"
@@ -113,7 +115,13 @@ setup_hotspot() {
   [[ ${#pass} -ge 8 ]] || die "Wi-Fi password must be at least 8 characters"
   nmcli connection delete Hotspot >/dev/null 2>&1 || true
   nmcli device wifi hotspot ifname wlan0 con-name Hotspot ssid "$SSID" password "$pass" >/dev/null
-  nmcli connection modify Hotspot connection.autoconnect yes connection.autoconnect-priority 100
+  nmcli connection modify Hotspot connection.autoconnect yes connection.autoconnect-priority 100 \
+    ipv4.addresses 10.42.0.1/24 ipv4.method shared
+  # Captive portal: answer every DNS lookup on the hotspot with the Pi, so phones that probe
+  # for internet land on ARK's welcome page. (Applies to the hotspot only, not Ethernet.)
+  mkdir -p /etc/NetworkManager/dnsmasq-shared.d
+  echo "address=/#/10.42.0.1" > /etc/NetworkManager/dnsmasq-shared.d/ark-captive.conf
+  nmcli connection up Hotspot >/dev/null 2>&1 || true
   HOTSPOT_MSG="Wi-Fi network: $SSID    password: $pass"
 }
 
@@ -142,7 +150,7 @@ cat <<EOF
 $(printf '\033[1;32m')ARK·π is installed.$(printf '\033[0m')
 
   Hotspot : $HOTSPOT_MSG
-  Open    : http://$HOST.local:8000        (or http://10.42.0.1:8000 on the hotspot)
+  Open    : http://$HOST.local             (or http://10.42.0.1 on the hotspot; phones get a pop-up automatically)
   Install : https://$HOST.local/install    (trust the certificate once, then "Add to Home Screen")
 
 Next (optional, needs internet, big downloads):

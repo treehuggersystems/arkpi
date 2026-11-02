@@ -37,7 +37,7 @@ sudo ./arkpi/install.sh
 
 It asks for a Wi-Fi password (or makes one), then installs everything, starts ARK·π on every boot, and creates the **ARK Wi-Fi hotspot**.
 
-**4. Use it.** Join the **ARK** Wi-Fi on a phone and open **http://ark.local:8000**. To install it as an app, open **https://ark.local/install** once.
+**4. Use it.** Join the **ARK** Wi-Fi on a phone and a **"Sign in to network" pop-up opens ARK·π automatically** (captive portal). If it doesn't, open **http://ark.local** (or `http://10.42.0.1`). There's no port number to remember. To keep it as an app, open **https://ark.local/install** once.
 
 That's it. The Pi now works with no internet. Open the sections below only if you want more.
 
@@ -88,6 +88,7 @@ Both are resumable. See `docs/RECOMMENDED_DOWNLOADS.md` for manuals and more.
 <details>
 <summary><b>Troubleshooting</b></summary>
 
+- No pop-up when joining the Wi-Fi: open any browser and go to `http://10.42.0.1`. Some phones say "no internet"; choose **Stay connected**.
 - `ark.local` doesn't resolve: use the Pi's IP (`hostname -I`) or `10.42.0.1` on the hotspot.
 - Hotspot didn't start: the Pi was on Wi-Fi. Connect Ethernet (or use a monitor) and run `sudo ARK_HOTSPOT=yes /opt/offline-server/install.sh`.
 - Site down: `systemctl status offline-server` and `journalctl -u offline-server -e`.
@@ -202,7 +203,8 @@ PMTILES=/path/to/pmtiles scripts/fetch-maps.sh   # ~2 GB
 
 | URL | |
 |---|---|
-| `http://<host>:8000/` | ARK (plain HTTP) |
+| `http://<host>/` | ARK (plain HTTP, port 80) |
+| `http://<host>:8000/` | ARK directly (development; same app) |
 | `https://<host>/` | ARK over HTTPS. **Use this to install the app** |
 | `https://<host>/install` | Certificate + install instructions for phones |
 | `http://<host>:8000/kiwix/` · `https://<host>/kiwix/` | Kiwix libraries, proxied through ARK·π, so no extra port to open |

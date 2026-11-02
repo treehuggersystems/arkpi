@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Welcome to ARK·π{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">You're connected</div>
+    <h1>Welcome to ARK·π</h1>
+    <p class="lede">This is an offline library: medical, water, food, navigation, the Bible and more. No internet needed. It only works on this Wi-Fi.</p>
+    <p><a class="button" href="/">Open ARK·π</a></p>
+</div>
+
+<div class="tool-panel prose">
+    <h2>Keep it on your phone or computer</h2>
+    <p>If this window is a small pop-up, open your normal browser (Chrome or Safari) and go to <strong>http://{{ host }}</strong>, then:</p>
+    <ul>
+        <li><strong>iPhone (Safari):</strong> Share button → <strong>Add to Home Screen</strong>.</li>
+        <li><strong>Android (Chrome):</strong> ⋮ menu → <strong>Add to Home screen</strong>.</li>
+        <li><strong>Computer:</strong> press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>D</kbd> to bookmark it, or drag the address to your desktop.</li>
+    </ul>
+    <p>For the full offline app (works even away from this Wi-Fi), see <a href="/install">Install ARK·π</a>.</p>
+    <p class="hint">If your phone says "no internet" on this network, that's expected. Choose <strong>Stay connected</strong>.</p>
+</div>
+{% endblock %}
