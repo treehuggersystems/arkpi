@@ -23,6 +23,10 @@
 #   ARK_REPO       git URL to install from       (default: the official repo)
 #   ARK_BRANCH     branch                        (default: main)
 #   ARK_DIR        install location              (default: /opt/offline-server)
+#   ARK_FETCH      big offline downloads: wiki, maps, or both as "wiki,maps" / "all"
+#                  (default: none; wiki ~21 GB, maps ~2 GB; resumable, safe to re-run)
+#   ARK_REGION_BBOX / ARK_REGION_NAME   map region "west,south,east,north" and its label
+#                  (default: Kentucky / Ohio / Indiana; get a box at boundingbox.klokantech.com)
 #
 # ARK_HOTSPOT=auto starts the hotspot only if the Pi is NOT currently using its
 # Wi-Fi for its connection (e.g. you're on Ethernet), so you can't lock yourself
@@ -46,7 +50,7 @@ command -v apt-get >/dev/null || die "this installer needs a Debian-based OS (Ra
 say "Installing packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq python3 python3-venv python3-pip git nginx openssl curl ca-certificates avahi-daemon >/dev/null
+apt-get install -y -qq python3 python3-venv python3-pip git nginx openssl curl wget ca-certificates avahi-daemon >/dev/null
 # These two are optional: skip quietly if the distro doesn't package them.
 apt-get install -y -qq kiwix-tools >/dev/null 2>&1 || warn "kiwix-tools not available; offline Wikipedia (Kiwix) will be skipped"
 apt-get install -y -qq network-manager >/dev/null 2>&1 || true
@@ -143,6 +147,60 @@ if [[ "$HOTSPOT" != "no" ]]; then
   fi
 fi
 
+# --- 6. offline libraries (optional) ---------------------------------------
+FETCH="${ARK_FETCH:-}"
+[[ "$FETCH" == "all" ]] && FETCH="wiki,maps"
+want() { [[ ",$FETCH," == *",$1,"* ]]; }
+
+free_gb() { df -BG --output=avail "$1" | tail -1 | tr -dc '0-9'; }
+FETCH_MSG=""
+
+if want wiki; then
+  say "Downloading offline Wikipedia & friends (~21 GB, resumable)"
+  if [[ "$(free_gb /opt/kiwix)" -lt 26 ]]; then
+    warn "less than 26 GB free; skipping wiki. Use a bigger card or an SSD."
+    FETCH_MSG+=$'\n  wiki : skipped (not enough disk space)'
+  elif "$DIR/scripts/fetch-zims.sh"; then
+    systemctl restart kiwix 2>/dev/null || true
+    FETCH_MSG+=$'\n  wiki : done'
+  else
+    warn "wiki download did not finish; re-run: sudo ARK_FETCH=wiki $DIR/install.sh"
+    FETCH_MSG+=$'\n  wiki : incomplete, re-run to resume'
+  fi
+fi
+
+if want maps; then
+  say "Downloading offline maps (~2 GB)"
+  if [[ "$(free_gb /opt/offline-data)" -lt 4 ]]; then
+    warn "less than 4 GB free; skipping maps."
+    FETCH_MSG+=$'\n  maps : skipped (not enough disk space)'
+  else
+    if ! command -v pmtiles >/dev/null; then
+      case "$(uname -m)" in aarch64|arm64) ARCH=Linux_arm64;; x86_64) ARCH=Linux_x86_64;; *) ARCH="";; esac
+      if [[ -n "$ARCH" ]]; then
+        TMP="$(mktemp -d)"
+        URL="$(curl -fsSL https://api.github.com/repos/protomaps/go-pmtiles/releases/latest \
+               | grep -oE "https://[^\"]+${ARCH}\.tar\.gz" | head -1 || true)"
+        if [[ -n "$URL" ]] && curl -fsSL "$URL" | tar -xz -C "$TMP" pmtiles; then
+          install -m 0755 "$TMP/pmtiles" /usr/local/bin/pmtiles
+        fi
+        rm -rf "$TMP"
+      fi
+    fi
+    if ! command -v pmtiles >/dev/null; then
+      warn "could not install the pmtiles tool (needs internet); skipping maps"
+      FETCH_MSG+=$'\n  maps : skipped (pmtiles tool unavailable)'
+    elif REGION_BBOX="${ARK_REGION_BBOX:--89.6,36.4,-80.4,42.1}" \
+         REGION_NAME="${ARK_REGION_NAME:-Kentucky · Ohio · Indiana}" \
+         "$DIR/scripts/fetch-maps.sh"; then
+      FETCH_MSG+=$'\n  maps : done'
+    else
+      warn "map download did not finish; re-run: sudo ARK_FETCH=maps $DIR/install.sh"
+      FETCH_MSG+=$'\n  maps : incomplete, re-run to retry'
+    fi
+  fi
+fi
+
 # --- done -------------------------------------------------------------------
 sleep 2
 systemctl is-active -q offline-server || warn "offline-server is not running; check: journalctl -u offline-server -e"
@@ -155,9 +213,9 @@ $(printf '\033[1;32m')ARK·π is installed.$(printf '\033[0m')
   Open    : http://$HOST.local             (or http://10.42.0.1 on the hotspot; phones get a pop-up automatically)
   Install : https://$HOST.local/install    (trust the certificate once, then "Add to Home Screen")
 
-Next (optional, needs internet, big downloads):
-  sudo $DIR/scripts/fetch-zims.sh     offline Wikipedia & friends (~21 GB)
-  sudo $DIR/scripts/fetch-maps.sh     offline maps (~2 GB)
+Offline libraries:${FETCH_MSG:-
+  not downloaded. Add them any time (needs internet, ~23 GB):
+  sudo ARK_FETCH=all $DIR/install.sh}
 
 Update later:  sudo $DIR/install.sh
 EOF

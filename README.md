@@ -37,6 +37,12 @@ sudo ./arkpi/install.sh
 
 It asks for a Wi-Fi password (or makes one), then installs everything, starts ARK·π on every boot, and creates the **ARK Wi-Fi hotspot**.
 
+**Want offline Wikipedia and maps too?** Add `ARK_FETCH=all` to the install command (about 23 GB, needs a 64 GB+ card and the internet; see Options below):
+
+```bash
+sudo ARK_FETCH=all ./arkpi/install.sh
+```
+
 **4. Use it.** Join the **ARK** Wi-Fi on a phone and a **"Sign in to network" pop-up opens ARK·π automatically** (captive portal). If it doesn't, open **http://ark.local** (or `http://10.42.0.1`). There's no port number to remember. To keep it as an app, open **https://ark.local/install** once.
 
 That's it. The Pi now works with no internet. Open the sections below only if you want more.
@@ -56,6 +62,8 @@ sudo ARK_SSID=MyArk ARK_PASS='a long passphrase' ./arkpi/install.sh
 | `ARK_PASS` | asks (random if non-interactive) | Wi-Fi password, 8+ characters |
 | `ARK_HOTSPOT` | `auto` | `yes`, `no`, or `auto` (skips the hotspot if the Pi is using its Wi-Fi for its connection, so you can't lock yourself out of SSH) |
 | `ARK_HOSTNAME` | unchanged | Set the Pi's hostname |
+| `ARK_FETCH` | none | Download the big offline libraries during install: `wiki` (Wikipedia, iFixit, medical, how-to; ~21 GB), `maps` (~2 GB), or `all`. Resumable; skipped automatically if the disk is too full |
+| `ARK_REGION_BBOX` / `ARK_REGION_NAME` | Kentucky/Ohio/Indiana | Street-level map region as `west,south,east,north` and its label (pick a box at [boundingbox.klokantech.com](https://boundingbox.klokantech.com), CSV format) |
 | `ARK_DIR` | `/opt/offline-server` | Install location |
 | `ARK_REPO` / `ARK_BRANCH` | official repo / `main` | Install from a fork or branch |
 
@@ -73,15 +81,19 @@ Re-running the installer pulls the newest code, refreshes dependencies and resta
 </details>
 
 <details>
-<summary><b>Add the big offline libraries</b> (Wikipedia, maps) — needs internet once</summary>
+<summary><b>Add the big offline libraries</b> (Wikipedia, maps) later</summary>
+
+Easiest: re-run the installer with `ARK_FETCH` (needs internet once; resumable):
 
 ```bash
-sudo /opt/offline-server/scripts/fetch-zims.sh     # Wikipedia, iFixit, medical, how-to: ~21 GB
-sudo /opt/offline-server/scripts/fetch-maps.sh     # offline maps: ~2 GB (needs the `pmtiles` CLI)
-sudo systemctl restart kiwix
+sudo ARK_FETCH=all /opt/offline-server/install.sh                     # wiki + maps
+sudo ARK_FETCH=wiki /opt/offline-server/install.sh                    # just Wikipedia & friends
+sudo ARK_FETCH=maps ARK_REGION_BBOX="-80,35,-75,38" ARK_REGION_NAME="My Area" /opt/offline-server/install.sh
 ```
 
-Both are resumable. See `docs/RECOMMENDED_DOWNLOADS.md` for manuals and more.
+Or run the scripts directly: `scripts/fetch-zims.sh` and `scripts/fetch-maps.sh` (the latter needs the
+[`pmtiles`](https://github.com/protomaps/go-pmtiles/releases) tool; the installer fetches it for you).
+To download fewer libraries, edit the list at the top of `fetch-zims.sh`. See `docs/RECOMMENDED_DOWNLOADS.md` for manuals and more.
 
 </details>
 
