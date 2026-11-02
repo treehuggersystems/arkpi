@@ -13,12 +13,16 @@ Built to live two lives:
 - **Grid-down:** on a Raspberry Pi stored in a Faraday container, powered by a
   battery and solar panel, serving every phone and laptop in the house over Wi-Fi.
 
-## Quick start (Raspberry Pi)
+## Quick start (Raspberry Pi) — about 15 minutes
 
-1. In **Raspberry Pi Imager** choose a Pi 4/5, **Raspberry Pi OS Lite (64-bit)**, and a 128 GB+ SSD or SD card.
-   Click the settings gear and set a hostname (e.g. `ark`), a username/password, and enable SSH.
-   Connect the Pi by **Ethernet** for the install.
-2. Boot, SSH in (`ssh youruser@ark.local`), then run:
+**You need:** a Raspberry Pi 4 or 5 (4 GB+), a 128 GB+ SSD or SD card, a computer to flash it, and Ethernet or internet for the install.
+
+**1. Flash the Pi.** In [Raspberry Pi Imager](https://www.raspberrypi.com/software/) pick your Pi, **Raspberry Pi OS Lite (64-bit)**, and
+your drive. Click the ⚙ settings: set hostname `ark`, a username and password, and enable SSH. Write it, put it in the Pi, plug in Ethernet, power on.
+
+**2. Connect.** From your computer: `ssh youruser@ark.local`
+
+**3. Install** (paste these three lines):
 
 ```bash
 sudo apt update && sudo apt install -y git
@@ -26,15 +30,65 @@ git clone https://github.com/treehuggersystems/arkpi.git
 sudo ./arkpi/install.sh
 ```
 
-The installer pulls the latest code, installs everything, sets up HTTPS, starts ARK·π on boot,
-and creates the **ARK Wi-Fi hotspot** (it asks for a password, or generates one). Then join that
-Wi-Fi from a phone and open `http://ark.local:8000`.
+It asks for a Wi-Fi password (or makes one), then installs everything, starts ARK·π on every boot, and creates the **ARK Wi-Fi hotspot**.
 
-Customize with environment variables, e.g. `sudo ARK_SSID=MyArk ARK_PASS='a long passphrase' ./arkpi/install.sh`
-(see the top of `install.sh` for all options). **Update any time** by running `sudo /opt/offline-server/install.sh` again.
+**4. Use it.** Join the **ARK** Wi-Fi on a phone and open **http://ark.local:8000**. To install it as an app, open **https://ark.local/install** once.
 
-Optional big downloads (internet needed once): `sudo /opt/offline-server/scripts/fetch-zims.sh` (offline
-Wikipedia & friends, ~21 GB) and `sudo /opt/offline-server/scripts/fetch-maps.sh` (maps, ~2 GB).
+That's it. The Pi now works with no internet. Open the sections below only if you want more.
+
+<details>
+<summary><b>Options</b> — Wi-Fi name/password, hostname, and so on</summary>
+
+Set environment variables in front of the install command:
+
+```bash
+sudo ARK_SSID=MyArk ARK_PASS='a long passphrase' ./arkpi/install.sh
+```
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ARK_SSID` | `ARK` | Wi-Fi network name |
+| `ARK_PASS` | asks (random if non-interactive) | Wi-Fi password, 8+ characters |
+| `ARK_HOTSPOT` | `auto` | `yes`, `no`, or `auto` (skips the hotspot if the Pi is using its Wi-Fi for its connection, so you can't lock yourself out of SSH) |
+| `ARK_HOSTNAME` | unchanged | Set the Pi's hostname |
+| `ARK_DIR` | `/opt/offline-server` | Install location |
+| `ARK_REPO` / `ARK_BRANCH` | official repo / `main` | Install from a fork or branch |
+
+</details>
+
+<details>
+<summary><b>Update</b> to the latest version</summary>
+
+```bash
+sudo /opt/offline-server/install.sh
+```
+
+Re-running the installer pulls the newest code, refreshes dependencies and restarts the services. Your data in `data/` is kept.
+
+</details>
+
+<details>
+<summary><b>Add the big offline libraries</b> (Wikipedia, maps) — needs internet once</summary>
+
+```bash
+sudo /opt/offline-server/scripts/fetch-zims.sh     # Wikipedia, iFixit, medical, how-to: ~21 GB
+sudo /opt/offline-server/scripts/fetch-maps.sh     # offline maps: ~2 GB (needs the `pmtiles` CLI)
+sudo systemctl restart kiwix
+```
+
+Both are resumable. See `docs/RECOMMENDED_DOWNLOADS.md` for manuals and more.
+
+</details>
+
+<details>
+<summary><b>Troubleshooting</b></summary>
+
+- `ark.local` doesn't resolve: use the Pi's IP (`hostname -I`) or `10.42.0.1` on the hotspot.
+- Hotspot didn't start: the Pi was on Wi-Fi. Connect Ethernet (or use a monitor) and run `sudo ARK_HOTSPOT=yes /opt/offline-server/install.sh`.
+- Site down: `systemctl status offline-server` and `journalctl -u offline-server -e`.
+- Offline Wikipedia empty: run `fetch-zims.sh`, then `sudo systemctl restart kiwix`.
+
+</details>
 
 ## What's inside
 
@@ -115,7 +169,8 @@ summary: One line shown on cards and in lists.
 - `## Ingredients`, `## Equipment` and `## Yield` sections in `content/recipes/`
   render in the recipe sidebar; `### 1. Step` headings become numbered steps.
 
-## Running it manually (development)
+<details>
+<summary><b>Running it manually (development, other Linux)</b></summary>
 
 On a Pi, `install.sh` (above) does all of this for you.
 
@@ -155,6 +210,8 @@ PMTILES=/path/to/pmtiles scripts/fetch-maps.sh   # ~2 GB
 `OFFLINE_MEDIA_DIR`, `OFFLINE_IMPORT_DIR`, `KIWIX_HOST`, `KIWIX_PORT` (8082, internal),
 `KIWIX_PUBLIC_PORT` (8081), `KIWIX_ROOT` (`/kiwix`), `ARK_TLS_DIR` (`/etc/ark-tls`).
 
+</details>
+
 ## Bible translations
 
 BSB, KJV and WEB are public domain and ship in `app/bible/`. Copyrighted translations
@@ -170,7 +227,8 @@ The result (`app/bible/esv.json`) is git-ignored. When present, ESV becomes the 
 translation; chapters missing from the source fall back to the BSB with a notice. Copy
 it to the Pi separately (it is not in the repo).
 
-## Moving to the Raspberry Pi
+<details>
+<summary><b>Moving an existing server to a Pi (with your data)</b></summary>
 
 1. Raspberry Pi 4/5 (4 GB+), 128 GB+ **SSD** (better than SD for ~30 GB of data), Raspberry Pi OS 64-bit Lite.
 2. `sudo apt install python3-venv nginx kiwix-tools git`
@@ -186,6 +244,8 @@ it to the Pi separately (it is not in the repo).
 8. Power: the Pi draws ~3–7 W. A 100 Wh battery runs it ~15 h. Add a small
    solar panel + USB-C PD charger. Store the Pi, an SSD clone, cables, power
    bank and a travel router in a Faraday container (see *Power & EMP → EMP & Faraday Protection*).
+
+</details>
 
 ## Customizing
 
