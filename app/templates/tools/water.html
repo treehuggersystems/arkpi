@@ -1,0 +1,64 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="f">
+    <h2>Household</h2>
+    <div class="form-row">
+        <div class="field"><label>Adults</label><input type="number" name="adults" value="2" min="0"></div>
+        <div class="field"><label>Children</label><input type="number" name="kids" value="2" min="0"></div>
+        <div class="field"><label>Days to cover</label><input type="number" name="days" value="14" min="1"></div>
+    </div>
+    <div class="form-row">
+        <div class="field"><label>Pets, total lbs</label><input type="number" name="petlbs" value="50" min="0"></div>
+        <div class="field"><label>Climate / activity</label>
+            <select name="climate">
+                <option value="1">Mild / resting</option>
+                <option value="1.5">Hot or active</option>
+                <option value="2">Very hot / hard labor</option>
+            </select>
+        </div>
+        <div class="field"><label>Hygiene &amp; cooking extra</label>
+            <select name="extra">
+                <option value="0">None (drinking + basic only)</option>
+                <option value="0.5" selected>+0.5 gal/person/day</option>
+                <option value="1">+1 gal/person/day</option>
+            </select>
+        </div>
+    </div>
+    <div class="readout">
+        <div class="r big"><span class="k">Total water to store</span><span class="v" id="total">-</span></div>
+        <div class="r"><span class="k">Per day</span><span class="v" id="perday">-</span></div>
+        <div class="r"><span class="k">Weight</span><span class="v" id="weight">-</span></div>
+        <div class="r"><span class="k">5-gal jugs</span><span class="v" id="jugs">-</span></div>
+        <div class="r"><span class="k">55-gal drums</span><span class="v" id="drums">-</span></div>
+        <div class="r"><span class="k">Bathtub (~40 gal) fills</span><span class="v" id="tubs">-</span></div>
+    </div>
+</form>
+<div class="tool-panel prose">
+    <h2>Rules of thumb</h2>
+    <ul>
+        <li><strong>1 gallon per person per day</strong> is the FEMA / Red Cross minimum (about ½ gal drinking, ½ gal food prep &amp; hygiene). Store at least 3 days; aim for 2 weeks.</li>
+        <li>Children, nursing mothers, sick people and hot weather all need more. Heat can <strong>double</strong> requirements.</li>
+        <li>Pets: roughly <strong>1 oz of water per lb</strong> of body weight per day.</li>
+        <li>Water weighs <strong>8.34 lb per gallon</strong>. A full 55-gal drum is about 460 lb, so place it before filling.</li>
+        <li>Your water heater (30–80 gal) and toilet tanks (not bowls) are emergency reserves.</li>
+    </ul>
+    <p><a href="/water">Purification &amp; storage guides →</a> · <a href="/tools/bleach">Bleach dosing →</a></p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+ARK.calc("#f", v => {
+  const people = (v.adults || 0) + (v.kids || 0) * 0.75;
+  const perPerson = 1 * (+v.climate) + (+v.extra);
+  const pets = (v.petlbs || 0) / 128;
+  const perday = people * perPerson + pets;
+  const total = perday * (v.days || 0);
+  ARK.out("perday", ARK.fmt(perday, 1) + ' <span class="u">gal</span>');
+  ARK.out("total", ARK.fmt(Math.ceil(total)) + ' <span class="u">gallons (' + ARK.fmt(total * 3.785, 0) + ' L)</span>');
+  ARK.out("weight", ARK.fmt(total * 8.34, 0) + ' <span class="u">lb</span>');
+  ARK.out("jugs", ARK.fmt(Math.ceil(total / 5), 0));
+  ARK.out("drums", ARK.fmt(total / 55, 1));
+  ARK.out("tubs", ARK.fmt(total / 40, 1));
+});
+</script>
+{% endblock %}

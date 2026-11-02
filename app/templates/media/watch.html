@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }}{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="/media?kind=video">Films</a> / <span>{{ item.title }}</span></div>
+<div class="page-head" style="margin-bottom:1rem">
+    <div class="eyebrow">{{ item.shelf }}</div>
+    <h1>{{ item.title }}</h1>
+    <p class="lede">{{ item.note }}</p>
+</div>
+<video class="player" controls preload="metadata" src="/media/file/{{ item.path }}" id="vid"></video>
+<p class="hint">Public domain · Internet Archive item <code>{{ item.ia }}</code>. Resumes where you left off on this device.</p>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const v = document.getElementById("vid"), k = "pos:{{ item.ia }}";
+  v.addEventListener("loadedmetadata", () => { const t = ARK.store.get(k, 0); if (t > 5 && t < v.duration - 10) v.currentTime = t; });
+  setInterval(() => { if (!v.paused) ARK.store.set(k, v.currentTime); }, 5000);
+})();
+</script>
+{% endblock %}

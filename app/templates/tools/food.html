@@ -1,0 +1,68 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="f">
+    <h2>Who and how long</h2>
+    <div class="form-row">
+        <div class="field"><label>Adults</label><input type="number" name="adults" value="2" min="0"></div>
+        <div class="field"><label>Children</label><input type="number" name="kids" value="2" min="0"></div>
+        <div class="field"><label>Days</label><input type="number" name="days" value="90" min="1"></div>
+    </div>
+    <div class="form-row">
+        <div class="field"><label>kcal / adult / day</label><input type="number" name="kcal" value="2200" step="50"></div>
+        <div class="field"><label>kcal / child / day</label><input type="number" name="kidkcal" value="1600" step="50"></div>
+    </div>
+    <h2 style="margin-top:1rem">Calorie mix (% of total)</h2>
+    <div class="form-row">
+        <div class="field"><label>Grains (rice / wheat / oats)</label><input type="number" name="pg" value="55"></div>
+        <div class="field"><label>Legumes (dry beans)</label><input type="number" name="pl" value="15"></div>
+        <div class="field"><label>Fats &amp; oils</label><input type="number" name="pf" value="15"></div>
+        <div class="field"><label>Sugar / honey</label><input type="number" name="ps" value="8"></div>
+        <div class="field"><label>Powdered milk</label><input type="number" name="pm" value="7"></div>
+    </div>
+    <p class="hint" id="pct-warn"></p>
+    <div class="readout">
+        <div class="r big"><span class="k">Total calories needed</span><span class="v" id="total">-</span></div>
+        <div class="r"><span class="k">Grains</span><span class="v" id="g">-</span></div>
+        <div class="r"><span class="k">Dry beans</span><span class="v" id="l">-</span></div>
+        <div class="r"><span class="k">Oil</span><span class="v" id="o">-</span></div>
+        <div class="r"><span class="k">Sugar / honey</span><span class="v" id="s">-</span></div>
+        <div class="r"><span class="k">Powdered milk</span><span class="v" id="m">-</span></div>
+        <div class="r"><span class="k">Salt (≈ 8 lb/adult/yr)</span><span class="v" id="salt">-</span></div>
+    </div>
+</form>
+<div class="tool-panel prose">
+    <h2>Assumptions</h2>
+    <table>
+        <thead><tr><th>Food</th><th>kcal / lb (dry)</th><th>Per 5-gal bucket</th><th>Shelf life (sealed, O₂ absorber, cool)</th></tr></thead>
+        <tbody>
+            <tr><td>White rice</td><td>~1,650</td><td>~33–35 lb</td><td>25–30 years</td></tr>
+            <tr><td>Hard wheat berries</td><td>~1,500</td><td>~35–37 lb</td><td>25–30 years</td></tr>
+            <tr><td>Rolled oats</td><td>~1,700</td><td>~20–25 lb</td><td>25–30 years</td></tr>
+            <tr><td>Dry pinto / black beans</td><td>~1,550</td><td>~33 lb</td><td>25–30 years</td></tr>
+            <tr><td>Vegetable oil</td><td>~4,000 (≈30,000/gal)</td><td>n/a</td><td>1–2 years (rotate!)</td></tr>
+            <tr><td>Sugar / honey</td><td>~1,750 / ~1,380</td><td>~35 lb sugar</td><td>Indefinite</td></tr>
+            <tr><td>Nonfat dry milk</td><td>~1,630</td><td>~25 lb</td><td>~20 years</td></tr>
+        </tbody>
+    </table>
+    <p class="hint">Brown rice and whole-wheat flour go rancid in months, so store white rice and whole berries plus a grain mill. Add a multivitamin, canned meat and vegetables, and spices for real meals.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+ARK.calc("#f", v => {
+  const total = ((v.adults || 0) * v.kcal + (v.kids || 0) * v.kidkcal) * v.days;
+  const pctSum = v.pg + v.pl + v.pf + v.ps + v.pm;
+  ARK.out("pct-warn", Math.abs(pctSum - 100) > 0.5 ? "⚠ Percentages add up to " + pctSum + "%, not 100%." : "");
+  const lb = (pct, kcalPerLb) => total * pct / 100 / kcalPerLb;
+  const g = lb(v.pg, 1650), l = lb(v.pl, 1550), o = lb(v.pf, 4000), s = lb(v.ps, 1750), m = lb(v.pm, 1630);
+  const buckets = (x, per) => ' <span class="u">lb · ' + ARK.fmt(x / per, 1) + " buckets</span>";
+  ARK.out("total", ARK.fmt(total, 0) + ' <span class="u">kcal</span>');
+  ARK.out("g", ARK.fmt(g, 0) + buckets(g, 34));
+  ARK.out("l", ARK.fmt(l, 0) + buckets(l, 33));
+  ARK.out("o", ARK.fmt(o / 7.6, 1) + ' <span class="u">gal (' + ARK.fmt(o, 0) + " lb)</span>");
+  ARK.out("s", ARK.fmt(s, 0) + ' <span class="u">lb</span>');
+  ARK.out("m", ARK.fmt(m, 0) + ' <span class="u">lb</span>');
+  ARK.out("salt", ARK.fmt(((v.adults || 0) + (v.kids || 0) * 0.5) * 8 * v.days / 365, 1) + ' <span class="u">lb</span>');
+});
+</script>
+{% endblock %}

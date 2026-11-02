@@ -1,0 +1,29 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Runtime data written by the app (pantry, waypoints, logbook, checklists)
+data/
+
+# Large offline data lives outside the repo (see scripts/fetch-*.sh)
+*.zim
+*.pmtiles
+
+# Local secrets / TLS material
+.env
+*.pem
+*.key
+*.crt
+
+# Personally licensed Bible translations (e.g. ESV/NLT you own) stay local, never in git.
+app/bible/*.json
+!app/bible/kjv.json
+!app/bible/bsb.json
+!app/bible/web.json
+
+# Editor / OS
+.DS_Store
+*.swp
+.vscode/
+.idea/

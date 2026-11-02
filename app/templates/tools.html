@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Tools{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">Field software</div>
+    <h1>Tools &amp; Calculators</h1>
+    <p class="lede">The everyday apps you lose when the internet goes down: calculators, planners, trackers and references. They all run right here on this server.</p>
+</div>
+
+<div class="grid cols-3">
+    <a class="tile feature" href="/map">
+        <span class="tile-icon">{{ icon("map", 22) }}</span>
+        <h3>Offline Map</h3>
+        <p>World, US and regional street maps. MGRS/UTM coordinates, waypoints, distance and bearing.</p>
+    </a>
+    {% for slug, title, blurb, ico in tools %}
+    <a class="tile" href="/tools/{{ slug }}">
+        <span class="tile-icon">{{ icon(ico, 22) }}</span>
+        <h3>{{ title }}</h3>
+        <p>{{ blurb }}</p>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

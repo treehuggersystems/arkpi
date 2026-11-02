@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ "Psalm" if book.name == "Psalms" else book.name }} {{ chapter }} · KJV{% endblock %}
+{% block container_class %}{% if not compare %}narrow{% endif %}{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="/bible">Bible</a> / <a href="/bible/{{ book.slug }}">{{ book.name }}</a> / <span>{{ chapter }}</span></div>
+
+<header class="chapter-head">
+    <div>
+        <div class="eyebrow">{{ tr_info.name }}{% if compare %} · compared with {{ cmp_info.short }}{% endif %}</div>
+        <h1>{{ "Psalm" if book.name == "Psalms" else book.name }} {{ chapter }}</h1>
+    </div>
+    <div class="chapter-tools no-print">
+        <button class="button ghost small" type="button" data-font="-1" title="Smaller text">A−</button>
+        <button class="button ghost small" type="button" data-font="1" title="Larger text">A+</button>
+        <button class="button ghost small" type="button" onclick="window.print()">{{ icon("printer", 14) }}</button>
+    </div>
+</header>
+
+{% set compare_ui = true %}{% include "bible/_switch.html" %}
+
+{% if compare %}
+<div class="scripture-text compare" id="scripture">
+    <div class="cmp-row cmp-head"><div>{{ tr_info.short }}</div><div>{{ cmp_info.short }}</div></div>
+    {% for n, text in verses %}
+    <div class="cmp-row{% if n in highlight %} hl{% endif %}" id="v{{ n }}"><div><sup class="vn">{{ n }}</sup>{{ text }}</div><div><sup class="vn">{{ n }}</sup>{{ cmp_verses.get(n, "") }}</div></div>
+    {% endfor %}
+</div>
+{% else %}
+{% if fallback %}<div class="callout warn" style="margin-top:1rem"><div><strong>Showing {{ fallback.short }}</strong><p>Your {{ tr_info.short }} database doesn't include this chapter in full, so the {{ fallback.name }} is shown instead.</p></div></div>{% endif %}
+<div class="scripture-text" id="scripture">
+    {% for n, text in verses %}{% if n in headings %}<h3 class="sec-head">{{ headings[n] }}</h3>{% endif %}{% if text %}<span class="verse{% if n in highlight %} hl{% endif %}" id="v{{ n }}"><sup class="vn">{{ n }}</sup>{{ text }} </span>{% endif %}{% endfor %}
+</div>
+{% endif %}
+{% if tr_info.copyright %}<p class="hint copyright">{{ tr_info.copyright }}</p>{% endif %}
+
+<nav class="chapter-nav no-print">
+    {% if prev %}<a class="button ghost" href="/bible/{{ prev[0].slug }}/{{ prev[1] }}">{{ icon("arrow-left", 16) }} {{ prev[0].name }} {{ prev[1] }}</a>{% else %}<span></span>{% endif %}
+    <a class="button ghost" href="/bible/{{ book.slug }}">Chapters</a>
+    {% if next %}<a class="button ghost" href="/bible/{{ next[0].slug }}/{{ next[1] }}">{{ next[0].name }} {{ next[1] }} {{ icon("arrow-right", 16) }}</a>{% else %}<span></span>{% endif %}
+</nav>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const el = document.getElementById("scripture");
+  let size = ARK.store.get("bible:font", 1.18);
+  const apply = () => { el.style.fontSize = size + "rem"; };
+  apply();
+  document.querySelectorAll("[data-font]").forEach(b => b.addEventListener("click", () => {
+    size = Math.min(2, Math.max(0.9, size + 0.08 * +b.dataset.font)); ARK.store.set("bible:font", size); apply();
+  }));
+  // Swipe left/right on phones to change chapter
+  let x0 = null;
+  el.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, { passive: true });
+  el.addEventListener("touchend", e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    const links = document.querySelectorAll(".chapter-nav a");
+    if (Math.abs(dx) > 90) { const a = dx < 0 ? links[links.length - 1] : links[0]; if (a && a.href) location.href = a.href; }
+  });
+})();
+</script>
+{% endblock %}

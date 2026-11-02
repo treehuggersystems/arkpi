@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Holy Bible (KJV){% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">{{ tr_info.name }} · complete &amp; offline</div>
+    <h1>Holy Bible</h1>
+    <p class="lede">All 66 books in {{ translations|length }} translations, fully offline. Search by word or jump to a reference like <code>John 3:16</code> or <code>Ps 91</code>.</p>
+    {% include "bible/_switch.html" %}
+    <form class="bible-search" action="/bible/search" method="get">
+        {{ icon("search", 18) }}
+        <input type="search" name="q" placeholder="Romans 8:28 · Psalm 23 · &quot;fear not&quot; · shepherd" aria-label="Search the Bible">
+        <button class="button" type="submit">Go</button>
+    </form>
+</div>
+
+<div class="grid cols-2">
+    <a class="votd" href="{{ votd.url }}">
+        <span class="eyebrow">Verse of the day</span>
+        <span class="votd-text">{{ votd.text }}</span>
+        <span class="votd-ref">{{ votd.label }} · {{ votd.short }}</span>
+    </a>
+    <div class="card">
+        <div class="eyebrow">Today's reading · Bible in a year</div>
+        <div class="chips" style="margin:0.4rem 0 0.9rem">
+            {% for r in today %}<a class="chip on" href="{{ r.url }}" style="font-size:0.9rem;padding:0.3rem 0.8rem">{{ r.label }}</a>{% endfor %}
+        </div>
+        <a href="/bible/plan">Open the reading plan →</a>
+        <hr style="margin:1rem 0">
+        <div class="eyebrow">Save to this device</div>
+        <p class="hint" style="margin:0.2rem 0 0.6rem">Store every chapter of the {{ tr_info.short }} on your phone (≈ 15 MB) so the whole Bible works without the server.</p>
+        <button class="button small" type="button" id="save-bible" data-tr="{{ tr }}">{{ icon("check", 14) }} Save entire {{ tr_info.short }}</button>
+        <span class="mono hint" id="save-status"></span>
+    </div>
+</div>
+
+{% for t, label in [("OT", "Old Testament"), ("NT", "New Testament")] %}
+<div class="section-title"><h2>{{ label }}</h2></div>
+<div class="book-grid">
+    {% for b in books if b.testament == t %}
+    <a href="/bible/{{ b.slug }}{% if b.chapters|length == 1 %}/1{% endif %}" class="book-tile"><span>{{ b.name }}</span><small>{{ b.chapters|length }}</small></a>
+    {% endfor %}
+</div>
+{% endfor %}
+
+<div class="section-title"><h2>About these translations</h2></div>
+<div class="list">
+    {% for t in translations %}<div class="row-link" style="cursor:default"><span class="row-main"><span class="row-title">{{ t.short }} · {{ t.name }}</span><span class="row-sub">{{ t.note }}</span></span></div>{% endfor %}
+</div>
+<p class="hint" style="margin-top:1rem">NLT, NIV and NASB are copyrighted and can't be redistributed. For those, install the <strong>YouVersion</strong> or <strong>ESV</strong> app on your phone and download the translation inside the app.</p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const btn = document.getElementById("save-bible"), st = document.getElementById("save-status");
+  if (!("caches" in window) || !window.isSecureContext) {
+    btn.disabled = true; st.textContent = "Needs the installed app / HTTPS (see Install app).";
+    return;
+  }
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    const urls = await (await fetch("/api/bible/urls?t=" + btn.dataset.tr)).json();
+    const cache = await caches.open("ark-bible");
+    let done = 0;
+    const work = urls.slice();
+    async function worker() {
+      while (work.length) {
+        const u = work.shift();
+        if (!(await cache.match(u))) { try { await cache.add(u); } catch (e) {} }
+        done++; if (done % 20 === 0 || done === urls.length) st.textContent = ` ${done} / ${urls.length} chapters`;
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    st.textContent = ` ✓ All ${urls.length} chapters saved on this device`;
+  });
+})();
+</script>
+{% endblock %}

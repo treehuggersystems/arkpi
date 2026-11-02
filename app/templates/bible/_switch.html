@@ -1,0 +1,29 @@
+<div class="tr-switch no-print">
+    <label class="label" for="tr-select">Translation</label>
+    <select id="tr-select" data-current="{{ tr }}">
+        {% for t in translations %}<option value="{{ t.id }}" {% if t.id == tr %}selected{% endif %}>{{ t.short }} · {{ t.name }}</option>{% endfor %}
+    </select>
+    {% if compare_ui %}
+    <select id="cmp-select" aria-label="Compare with">
+        <option value="">Compare with…</option>
+        {% for t in translations if t.id != tr %}<option value="{{ t.id }}" {% if t.id == compare %}selected{% endif %}>{{ t.short }}</option>{% endfor %}
+    </select>
+    {% endif %}
+</div>
+<script>
+(function () {
+  const sel = document.getElementById("tr-select");
+  sel.addEventListener("change", () => {
+    document.cookie = "bible_t=" + sel.value + ";path=/;max-age=31536000;samesite=lax";
+    const u = new URL(location.href); u.searchParams.delete("t");
+    if (u.searchParams.get("c") === sel.value) u.searchParams.delete("c");
+    location.href = u.toString();
+  });
+  const cmp = document.getElementById("cmp-select");
+  cmp && cmp.addEventListener("change", () => {
+    const u = new URL(location.href);
+    if (cmp.value) u.searchParams.set("c", cmp.value); else u.searchParams.delete("c");
+    location.href = u.toString();
+  });
+})();
+</script>

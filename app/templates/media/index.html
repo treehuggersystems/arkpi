@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Books & Media{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">Public domain · offline</div>
+    <h1>Books &amp; Media</h1>
+    <p class="lede">Classic books, audiobooks and films for long nights with no power grid. Faith, adventure, kids, history and old-time skills.</p>
+    <div class="chips media-tabs">
+        <a class="chip {% if kind == 'book' %}on{% endif %}" href="/media?kind=book">{{ icon("book", 14) }} Books · {{ counts.book }}</a>
+        <a class="chip {% if kind == 'audio' %}on{% endif %}" href="/media?kind=audio">{{ icon("headphones", 14) }} Audiobooks · {{ counts.audio }}</a>
+        <a class="chip {% if kind == 'video' %}on{% endif %}" href="/media?kind=video">{{ icon("film", 14) }} Films · {{ counts.video }}</a>
+    </div>
+</div>
+
+{% if not shelves %}
+<div class="card">Nothing in this section yet. Downloads may still be in progress; check back shortly.</div>
+{% endif %}
+
+{% for shelf, items in shelves | dictsort %}
+<div class="section-title"><h2>{{ shelf }}</h2><span class="mono hint">{{ items | length }}</span></div>
+<div class="media-grid">
+    {% for i in items %}
+    {% if i.kind == "book" %}
+    <a class="media-card book" href="/media/books/{{ i.id }}/index.html">
+        <span class="cover" style="--h: {{ (i.id * 47) % 360 }}"><span>{{ i.title }}</span></span>
+        <span class="mc-title">{{ i.title }}</span>
+        <span class="mc-sub">{{ i.author }}</span>
+    </a>
+    {% elif i.kind == "audio" %}
+    <a class="media-card" href="/media/listen/{{ i.ia }}">
+        <span class="cover audio" style="--h: {{ (i.ia | length * 37) % 360 }}">{{ icon("headphones", 34) }}</span>
+        <span class="mc-title">{{ i.title }}</span>
+        <span class="mc-sub">{{ i.author }} · {{ i.tracks | length }} parts</span>
+    </a>
+    {% else %}
+    <a class="media-card" href="/media/watch/{{ i.ia }}">
+        <span class="cover video" style="--h: {{ (i.ia | length * 29) % 360 }}">{{ icon("film", 34) }}</span>
+        <span class="mc-title">{{ i.title }}</span>
+        <span class="mc-sub">{{ i.note }}</span>
+    </a>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endfor %}
+<p class="hint" style="margin-top:2rem">Sources: Project Gutenberg, LibriVox and the Internet Archive. All public domain in the United States. More books live in the Kiwix <a href="/library#wiki">Gutenberg collections</a>.</p>
+{% endblock %}

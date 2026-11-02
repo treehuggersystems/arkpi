@@ -1,0 +1,73 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="f">
+    <h2>New entry</h2>
+    <div class="form-row">
+        <div class="field"><label>Type</label>
+            <select name="kind">
+                <option value="note">Note / event</option>
+                <option value="radio">Radio contact</option>
+                <option value="medical">Medical</option>
+                <option value="security">Security</option>
+                <option value="weather">Weather</option>
+                <option value="supply">Supply / trade</option>
+            </select>
+        </div>
+        <div class="field"><label>Date / time</label><input type="datetime-local" name="ts" id="ts"></div>
+        <div class="field radio-only"><label>Call sign / who</label><input type="text" name="callsign" placeholder="KY4ABC"></div>
+        <div class="field radio-only"><label>Frequency / channel</label><input type="text" name="freq" placeholder="146.520 / GMRS 20"></div>
+    </div>
+    <div class="field"><label>Entry</label><textarea name="text" required style="min-height:110px;font-family:var(--font-body)" placeholder="What happened, signal report, vitals, what was traded…"></textarea></div>
+    <button class="button" type="submit">{{ icon("check", 16) }} Log it</button>
+    <span class="hint">Time defaults to now. Set it manually if the clock is wrong.</span>
+</form>
+<div class="tool-panel">
+    <div style="display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap;margin-bottom:0.6rem">
+        <h2 style="margin:0">Log</h2>
+        <select id="filter" style="max-width:180px;padding:0.3rem 0.5rem;margin-left:auto"><option value="">All types</option><option>note</option><option>radio</option><option>medical</option><option>security</option><option>weather</option><option>supply</option></select>
+        <button class="button small ghost" type="button" onclick="window.print()">{{ icon("printer", 14) }} Print</button>
+    </div>
+    <div id="log" class="list"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const { $ } = ARK;
+  const f = $("#f");
+  const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+  $("#ts").value = nowLocal();
+  const toggle = () => document.querySelectorAll(".radio-only").forEach(el => el.style.display = f.kind.value === "radio" ? "" : "none");
+  f.kind.addEventListener("change", toggle); toggle();
+  const esc = s => String(s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  let entries = [];
+  async function load() { entries = await (await fetch("/api/log")).json(); render(); }
+  function render() {
+    const k = $("#filter").value;
+    $("#log").innerHTML = entries.filter(e => !k || e.kind === k).map(e => `
+      <div class="card" style="padding:0.8rem 1rem">
+        <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap">
+          <span class="chip ${e.kind === "medical" || e.kind === "security" ? "danger" : ""}">${esc(e.kind)}</span>
+          <span class="mono" style="color:var(--accent)">${esc(e.ts.replace("T", " "))}</span>
+          ${e.callsign ? `<span class="mono">${esc(e.callsign)}</span>` : ""}${e.freq ? `<span class="mono hint">@ ${esc(e.freq)}</span>` : ""}
+          <button class="button small ghost no-print" data-del="${esc(e.id)}" style="margin-left:auto">✕</button>
+        </div>
+        <div style="margin-top:0.4rem;white-space:pre-wrap">${esc(e.text)}</div>
+      </div>`).join("") || '<div class="card hint">No entries yet.</div>';
+  }
+  f.addEventListener("submit", async e => {
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(f));
+    await fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    f.text.value = ""; $("#ts").value = nowLocal(); load();
+  });
+  $("#log").addEventListener("click", async e => {
+    const b = e.target.closest("[data-del]"); if (!b) return;
+    if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Delete?"; setTimeout(() => { b.dataset.confirm = ""; b.textContent = "✕"; }, 3000); return; }
+    await fetch("/api/log/" + encodeURIComponent(b.dataset.del), { method: "DELETE" }); load();
+  });
+  $("#filter").addEventListener("change", render);
+  load();
+})();
+</script>
+{% endblock %}

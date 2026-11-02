@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }}{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="/">Home</a> / <a href="/recipes">Recipes</a> / <span>{{ doc.title }}</span></div>
+
+<header class="recipe-head">
+    <div>
+        <div class="eyebrow">Recipe</div>
+        <h1>{{ doc.title }}</h1>
+        <div class="chips">{% for tag in doc.tags %}<a class="chip" href="/tag/{{ tag }}">#{{ tag }}</a>{% endfor %}</div>
+    </div>
+    <div class="recipe-tools">
+        <button class="button ghost small" type="button" id="wake-btn" title="Keep the screen on while cooking">{{ icon("sun", 15) }} Keep screen on</button>
+        <a class="button ghost small" href="/tools/baker">{{ icon("scale", 15) }} Scale</a>
+        <button class="button ghost small" type="button" onclick="window.print()">{{ icon("printer", 15) }} Print card</button>
+    </div>
+</header>
+
+{% if parts.intro | striptags | trim %}
+<div class="prose recipe-intro">{{ parts.intro | safe }}</div>
+{% endif %}
+
+<div class="recipe-layout" data-recipe="{{ category }}/{{ name }}">
+    {% if parts.side %}
+    <aside class="recipe-card prose">
+        {{ parts.side | safe }}
+        <button class="reset no-print" type="button" id="reset-checks">↺ Clear checkmarks</button>
+    </aside>
+    {% endif %}
+    <div class="prose recipe-steps">
+        {{ parts.main | safe }}
+    </div>
+</div>
+{% endblock %}

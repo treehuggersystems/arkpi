@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-topo" aria-hidden="true"></div>
+    <svg class="hero-ridge" viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden="true">
+        <path class="r1" d="M0 160 L0 104 L70 82 L130 96 L210 52 L265 78 L330 40 L405 88 L470 70 L540 98 L610 58 L680 30 L745 72 L800 60 L870 92 L940 48 L1010 80 L1080 64 L1140 90 L1200 74 L1200 160Z"/>
+        <path class="r2" d="M0 160 L0 128 L90 112 L170 124 L250 100 L340 118 L420 96 L500 120 L590 104 L690 126 L780 98 L860 116 L950 102 L1040 124 L1120 108 L1200 120 L1200 160Z"/>
+    </svg>
+    <div class="hero-copy">
+        <div class="eyebrow">ARK·π · The Pocket Ark</div>
+        <h1>Know what to do <span>when nothing works.</span></h1>
+        <p class="epigraph">By faith Noah, being warned of God of things not seen as yet, moved with fear, prepared an ark to the saving of his house.<cite>HEBREWS 11:7</cite></p>
+        <p>Medical, water, comms, power, food and repair knowledge, field manuals, offline Wikipedia and survival calculators. All served locally, no internet required.</p>
+        <form class="searchbox" action="/search" method="get">
+            {{ icon("search", 18) }}
+            <input type="search" name="q" placeholder="Tourniquet, bleach dose, GMRS, sourdough…" aria-label="Search">
+        </form>
+        <div class="hero-tags">
+            Quick:
+            {% for tag in quick_tags %}<a class="chip" href="/tag/{{ tag }}">#{{ tag }}</a>{% endfor %}
+        </div>
+    </div>
+    <div class="status-panel" aria-label="System status">
+        <div class="radar" aria-hidden="true"><span></span></div>
+        <div class="row"><span class="k">Status</span><span class="v"><span class="dot on"></span>Online · local</span></div>
+        <div class="row"><span class="k">Articles</span><span class="v">{{ total }}</span></div>
+        <div class="row"><span class="k">Categories</span><span class="v">{{ categories | length }}</span></div>
+        <div class="row"><span class="k">Field manuals</span><span class="v">{{ manual_count }}</span></div>
+        <div class="row"><span class="k">Offline maps</span><span class="v">{% if map_layers %}<span class="dot on"></span><a href="/map">{{ map_layers | length }} layer{{ 's' if map_layers | length != 1 }}</a>{% else %}<span class="dot off"></span>None{% endif %}</span></div>
+        <div class="row"><span class="k">Offline Wiki</span><span class="v">{% if kiwix.up %}<span class="dot on"></span><a href="{{ kiwix.url }}">Running</a>{% else %}<span class="dot off"></span>Offline{% endif %}</span></div>
+        <div class="row"><span class="k">Local time</span><span class="v" id="clock">--:--</span></div>
+    </div>
+</section>
+
+<div class="grid cols-2 daily-bread" style="margin-top:1.5rem">
+    <a class="votd" href="{{ votd.url }}">
+        <span class="eyebrow">Daily bread · verse of the day</span>
+        <span class="votd-text">{{ votd.text }}</span>
+        <span class="votd-ref">{{ votd.label }} · {{ votd.short }}</span>
+    </a>
+    <div class="list">
+        <a class="row-link" href="/bible"><span class="row-ico">{{ icon("bible") }}</span><span class="row-main"><span class="row-title">Holy Bible</span><span class="row-sub">ESV · BSB · KJV · WEB. Search, reading plan, works offline</span></span></a>
+        <a class="row-link" href="/devotional"><span class="row-ico">{{ icon("sun") }}</span><span class="row-main"><span class="row-title">Morning &amp; Evening</span><span class="row-sub">Today's readings from C. H. Spurgeon's daily devotional</span></span></a>
+        <a class="row-link" href="/faith/psalms_of_refuge"><span class="row-ico">{{ icon("shield") }}</span><span class="row-main"><span class="row-title">Psalms of Refuge</span><span class="row-sub">23 · 27 · 46 · 91 · 121, for reading aloud in the dark</span></span></a>
+        <a class="row-link" href="/faith"><span class="row-ico">{{ icon("cross") }}</span><span class="row-main"><span class="row-title">Faith &amp; Scripture</span><span class="row-sub">Prayer, the Gospel, hymns, church without a building</span></span></a>
+    </div>
+</div>
+
+<div class="section-title">
+    <h2>{{ icon("alert", 18) }} Emergency Quick Reference</h2>
+    <a href="/critical">All critical →</a>
+</div>
+<div class="grid cols-3">
+    {% for d in quick %}
+    <a class="tile alert" href="/{{ d.category }}/{{ d.name }}">
+        <span class="tile-icon">{{ icon(d.category == 'medical' and 'medical' or d.category == 'comms' and 'radio' or d.category == 'water' and 'water' or 'bolt') }}</span>
+        <h3>{{ d.title }}</h3>
+        {% if d.summary %}<p>{{ d.summary }}</p>{% endif %}
+    </a>
+    {% endfor %}
+</div>
+
+<div class="section-title">
+    <h2>Knowledge Base</h2>
+    <a href="/tags">Browse tags →</a>
+</div>
+<div class="grid cols-4">
+    {% for c in categories %}
+    <a class="tile" href="/{{ c.name }}">
+        <span class="count">{{ "%02d" | format(c.count) }}</span>
+        <span class="tile-icon">{{ icon(c.icon, 22) }}</span>
+        <h3>{{ c.label }}</h3>
+        <p>{{ c.blurb }}</p>
+    </a>
+    {% endfor %}
+</div>
+
+<div class="grid cols-2" style="margin-top:2.75rem">
+    <div>
+        <div class="section-title" style="margin-top:0"><h2>Tools</h2><a href="/tools">All tools →</a></div>
+        <div class="list">
+            <a class="row-link" href="/tools/bleach"><span class="row-ico">{{ icon("drop") }}</span><span class="row-main"><span class="row-title">Bleach Dosing</span><span class="row-sub">Disinfect any volume of water</span></span></a>
+            <a class="row-link" href="/tools/power"><span class="row-ico">{{ icon("bolt") }}</span><span class="row-main"><span class="row-title">Battery &amp; Solar</span><span class="row-sub">Size a bank and array for your loads</span></span></a>
+            <a class="row-link" href="/tools/pantry"><span class="row-ico">{{ icon("box") }}</span><span class="row-main"><span class="row-title">Pantry Inventory</span><span class="row-sub">Track stores and expiration dates</span></span></a>
+            <a class="row-link" href="/tools/sun"><span class="row-ico">{{ icon("sun") }}</span><span class="row-main"><span class="row-title">Sun &amp; Moon</span><span class="row-sub">Sunrise, sunset and moon phase</span></span></a>
+        </div>
+    </div>
+    <div>
+        <div class="section-title" style="margin-top:0"><h2>Recently Updated</h2></div>
+        <div class="list">
+            {% for d in recent[:4] %}
+            <a class="row-link" href="/{{ d.category }}/{{ d.name }}">
+                <span class="row-ico">{{ icon("file") }}</span>
+                <span class="row-main"><span class="row-title">{{ d.title }}</span><span class="row-sub">{{ d.summary or d.tags | join(" · ") }}</span></span>
+                <span class="row-meta">{{ d.category }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="grid cols-3" style="margin-top:2.75rem">
+    <a class="tile feature" href="/map">
+        <span class="tile-icon">{{ icon("map", 22) }}</span>
+        <h3>Offline Map</h3>
+        <p>{% if map_layers %}World, US and regional street maps from OpenStreetMap. Drop waypoints for rally points, water and caches.{% else %}No map files yet. Run <code>scripts/fetch-maps.sh</code>.{% endif %}</p>
+    </a>
+    <a class="tile feature" href="/library">
+        <span class="tile-icon">{{ icon("book", 22) }}</span>
+        <h3>Field Manual Library</h3>
+        <p>{{ manual_count }} public-domain military and technical manuals: survival, first aid, engineering, field craft.</p>
+    </a>
+    <a class="tile feature" href="/library#wiki">
+        <span class="tile-icon">{{ icon("globe", 22) }}</span>
+        <h3>Offline Libraries</h3>
+        <p>{% if kiwix.up %}Wikipedia, iFixit repair guides, WikEM, MDWiki, StackExchange, Project Gutenberg, Appropedia and more, all browsable offline.{% else %}Kiwix server is not running. See the Library page for how to start it.{% endif %}</p>
+    </a>
+</div>
+{% endblock %}

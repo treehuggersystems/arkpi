@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Bible search{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="/bible">Bible</a> / <span>Search</span></div>
+<div class="page-head">
+    <div class="eyebrow">Search the {{ tr_info.short }}</div>
+    <h1>{% if query %}“{{ query }}”{% else %}Search{% endif %}</h1>
+    <form class="bible-search" action="/bible/search" method="get">
+        {{ icon("search", 18) }}
+        <input type="search" name="q" value="{{ query }}" placeholder="Word, &quot;exact phrase&quot;, or a reference" aria-label="Search the Bible">
+        <button class="button" type="submit">Go</button>
+    </form>
+    {% include "bible/_switch.html" %}
+    {% if query %}<p class="hint">{{ "{:,}".format(total) }} verse{{ "s" if total != 1 }}{% if total > results|length %} · showing first {{ results|length }}{% endif %}. Tip: put a phrase in quotes for an exact match.</p>{% endif %}
+</div>
+<div class="list" data-highlight="{{ query | replace('"', '') }}">
+    {% for r in results %}
+    <a class="row-link" href="/bible/{{ r.book.slug }}/{{ r.chapter }}?v={{ r.verse }}#v{{ r.verse }}">
+        <span class="row-main">
+            <span class="row-title" style="font-family:var(--font-mono);font-size:0.85rem;color:var(--accent)">{{ "Psalm" if r.book.name == "Psalms" else r.book.name }} {{ r.chapter }}:{{ r.verse }}</span>
+            <span class="row-sub result-snippet" style="font-size:1rem;color:var(--text-soft)">{{ r.text }}</span>
+        </span>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

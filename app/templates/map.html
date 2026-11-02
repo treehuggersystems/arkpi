@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Offline Map{% endblock %}
+{% block container_class %}map-page{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/vendor/leaflet.css">{% endblock %}
+
+{% block content %}
+<div class="map-shell">
+    <div class="map-wrap">
+        <div id="map" class="map-canvas" aria-label="Offline map"></div>
+        <div class="map-crosshair" aria-hidden="true"></div>
+        <div class="map-tools">
+            <button type="button" id="btn-locate" title="Show my location (GPS)">{{ icon("crosshair", 18) }}<span>Locate</span></button>
+            <button type="button" id="btn-measure" title="Measure a route">{{ icon("scale", 18) }}<span>Measure</span></button>
+            <button type="button" id="btn-full" title="Full screen map">{{ icon("map", 18) }}<span>Full</span></button>
+        </div>
+        <div class="map-toast" id="map-toast" hidden></div>
+    </div>
+
+    <aside class="map-panel">
+        <div class="map-panel-head">
+            <div class="eyebrow">Offline · OpenStreetMap</div>
+            <h1>Map</h1>
+        </div>
+
+        {% if not layers %}
+        <div class="callout warn">{{ icon("alert", 20) }}<div><strong>No map data</strong><p>Run <code>scripts/fetch-maps.sh</code> to download world, US and regional maps.</p></div></div>
+        {% endif %}
+
+        <div class="map-box">
+            <h4>{{ icon("crosshair", 14) }} <span id="c-label">Map center</span></h4>
+            <dl class="coords" id="coords">
+                <dt>Lat, Lon</dt><dd id="c-dd">-</dd>
+                <dt>DMS</dt><dd id="c-dms">-</dd>
+                <dt>UTM</dt><dd id="c-utm">-</dd>
+                <dt>MGRS</dt><dd id="c-mgrs">-</dd>
+                <dt>From <span id="c-from-name">-</span></dt><dd id="c-from">Choose a waypoint (⌖)</dd>
+            </dl>
+            <p class="hint" style="margin:0.5rem 0 0">Tap the map to drop a pin (drag it to adjust), then save it as a waypoint. Bearings are <strong>true</strong> north. Adjust for local declination (~5° W in KY).</p>
+        </div>
+
+        <div class="map-box" id="measure-box" hidden>
+            <h4>{{ icon("scale", 14) }} Measure</h4>
+            <div class="mono" id="measure-total" style="font-size:1.3rem;color:var(--accent)">-</div>
+            <div class="hint" id="measure-time"></div>
+            <ol class="measure-legs" id="measure-legs"></ol>
+            <div class="wp-actions" style="margin-top:0.5rem">
+                <button class="button small ghost" type="button" id="measure-undo">Undo point</button>
+                <button class="button small ghost" type="button" id="measure-clear">Clear</button>
+            </div>
+        </div>
+
+        <div class="map-box">
+            <h4>Go to</h4>
+            <form id="goto" class="goto">
+                <input type="text" id="goto-q" placeholder="39.50, -98.35  or a waypoint name">
+                <button class="button small" type="submit">Go</button>
+            </form>
+        </div>
+
+        <div class="map-box">
+            <h4>{{ icon("pin", 14) }} Waypoints <span id="wp-count" class="mono"></span></h4>
+            <div id="wp-list" class="wp-list"><p class="hint">No waypoints yet.</p></div>
+        </div>
+
+        <div class="map-box">
+            <h4>Layers</h4>
+            <ul class="layer-list">
+                {% for l in layers %}
+                <li><span class="mono">z{{ l.minzoom }}–{{ l.maxzoom }}</span> {{ l.name }} <span class="hint">{{ l.size }}</span></li>
+                {% endfor %}
+            </ul>
+            <p class="hint" style="margin:0.4rem 0 0">Zoom: <span id="zoom" class="mono">-</span> · Active: <span id="active-layer" class="mono">-</span></p>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/vendor/protomaps-leaflet.js"></script>
+<script src="/static/geo.js?v={{ v }}"></script>
+<script>
+window.ARK_MAP_LAYERS = {{ layers | tojson }};
+</script>
+<script src="/static/map.js?v={{ v }}"></script>
+{% endblock %}

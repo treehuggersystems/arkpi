@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Import files{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">Import</div>
+    <h1>Upload a file</h1>
+    <p class="lede">Send a file from this device to the ARK·π server: a Bible translation you own, a manual, a database. Files land in <code>{{ import_dir }}</code>, and nothing is published or shared.</p>
+</div>
+{% if ok %}<div class="callout" style="border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent)">{{ icon("check", 22) }}<div><strong>Uploaded</strong><p style="color:var(--text-soft)">{{ ok }} is on the server.</p></div></div>{% endif %}
+<form class="tool-panel" action="/import" method="post" enctype="multipart/form-data" id="up">
+    <div class="field">
+        <label for="file">File</label>
+        <input type="file" id="file" name="file" required accept="{{ exts | join(',') }}" style="padding:0.6rem;background:var(--surface-2);border:1px dashed var(--border-strong);border-radius:var(--radius-sm);color:var(--text)">
+        <span class="hint">Allowed: {{ exts | join(" ") }} · max 500 MB</span>
+    </div>
+    <button class="button" type="submit">{{ icon("plus", 16) }} Upload</button>
+    <span class="mono hint" id="prog"></span>
+</form>
+{% if files %}
+<div class="section-title"><h2>On the server</h2></div>
+<div class="list">{% for f in files %}<div class="row-link" style="cursor:default"><span class="row-ico">{{ icon("file") }}</span><span class="row-main"><span class="row-title">{{ f.name }}</span></span><span class="row-meta">{{ f.size }}</span></div>{% endfor %}</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("up").addEventListener("submit", e => {
+  e.preventDefault();
+  const fd = new FormData(e.target), xhr = new XMLHttpRequest(), prog = document.getElementById("prog");
+  xhr.upload.onprogress = ev => { if (ev.lengthComputable) prog.textContent = " " + Math.round(ev.loaded / ev.total * 100) + "%"; };
+  xhr.onload = () => { if (xhr.status < 400) location.href = xhr.responseURL; else prog.textContent = " ✗ " + xhr.responseText; };
+  xhr.open("POST", "/import"); xhr.send(fd);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="ant">
+    <h2>Antenna length</h2>
+    <div class="form-row">
+        <div class="field"><label>Frequency (MHz)</label><input type="number" name="f" value="146.52" step="any"></div>
+        <div class="field"><label>Quick pick</label>
+            <select name="pick">
+                <option value="">—</option>
+                <option value="3.9">80 m (3.9)</option><option value="7.2">40 m (7.2)</option><option value="14.2">20 m (14.2)</option>
+                <option value="27.185">CB ch 19 (27.185)</option><option value="28.4">10 m (28.4)</option>
+                <option value="146.52">2 m calling (146.52)</option><option value="151.94">MURS (151.94)</option>
+                <option value="156.8">Marine 16 (156.8)</option><option value="162.5">NOAA WX (162.5)</option>
+                <option value="446">70 cm calling (446.0)</option><option value="462.6">GMRS / FRS (462.6)</option>
+            </select>
+        </div>
+    </div>
+    <div class="readout">
+        <div class="r"><span class="k">Half-wave dipole (total)</span><span class="v" id="dip">-</span></div>
+        <div class="r"><span class="k">Each dipole leg</span><span class="v" id="leg">-</span></div>
+        <div class="r"><span class="k">Quarter-wave vertical / radials</span><span class="v" id="qw">-</span></div>
+        <div class="r"><span class="k">5/8-wave vertical</span><span class="v" id="fe">-</span></div>
+        <div class="r"><span class="k">Full wavelength (free space)</span><span class="v" id="wl">-</span></div>
+    </div>
+    <p class="hint">Uses 468/f (ft) for dipoles and 234/f for quarter-waves, which accounts for end effect in wire. Cut a little long and trim for lowest SWR.</p>
+</form>
+
+<form class="tool-panel" id="ohm">
+    <h2>Ohm's law: enter any two</h2>
+    <div class="form-row">
+        <div class="field"><label>Voltage V (volts)</label><input type="number" name="V" step="any" placeholder="12"></div>
+        <div class="field"><label>Current I (amps)</label><input type="number" name="I" step="any" placeholder=""></div>
+        <div class="field"><label>Resistance R (ohms)</label><input type="number" name="R" step="any" placeholder=""></div>
+        <div class="field"><label>Power P (watts)</label><input type="number" name="P" step="any" placeholder="60"></div>
+    </div>
+    <div class="readout" id="ohm-out"></div>
+</form>
+
+<form class="tool-panel" id="wire">
+    <h2>DC wire voltage drop</h2>
+    <div class="form-row">
+        <div class="field"><label>System volts</label><input type="number" name="v" value="12" step="any"></div>
+        <div class="field"><label>Current (A)</label><input type="number" name="a" value="20" step="any"></div>
+        <div class="field"><label>One-way length (ft)</label><input type="number" name="ft" value="15" step="any"></div>
+        <div class="field"><label>Copper wire (AWG)</label>
+            <select name="awg">{% for g, r in [("4/0",0.0490),("2/0",0.0779),("1/0",0.0983),("2",0.156),("4",0.249),("6",0.395),("8",0.628),("10",0.999),("12",1.588),("14",2.525),("16",4.016),("18",6.385)] %}<option value="{{ r }}" {% if g == "10" %}selected{% endif %}>{{ g }} AWG</option>{% endfor %}</select>
+        </div>
+    </div>
+    <div class="readout">
+        <div class="r"><span class="k">Voltage drop</span><span class="v" id="vd">-</span></div>
+        <div class="r"><span class="k">At the load</span><span class="v" id="vl">-</span></div>
+        <div class="r"><span class="k">Verdict</span><span class="v" id="verdict">-</span></div>
+    </div>
+    <p class="hint">Round trip = 2 × length. Aim for under 3% drop (radios, electronics), 5% max for lighting and motors.</p>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+ARK.calc("#ant", (v, form) => {
+  if (v.pick && form.f.value !== v.pick && document.activeElement === form.pick) { form.f.value = v.pick; v.f = parseFloat(v.pick); }
+  const f = v.f; if (!(f > 0)) return;
+  const ftin = ft => { const i = Math.round(ft * 12 * 4) / 4, F = Math.floor(i / 12); return `${F}′ ${ARK.fmt(i - F * 12, 2)}″ <span class="u">(${ARK.fmt(ft * 0.3048 * 100, 1)} cm)</span>`; };
+  ARK.out("dip", ftin(468 / f)); ARK.out("leg", ftin(234 / f)); ARK.out("qw", ftin(234 / f));
+  ARK.out("fe", ftin(0.625 * 984 / f * 0.95)); ARK.out("wl", ftin(983.57 / f));
+});
+ARK.calc("#ohm", v => {
+  let { V, I, R, P } = v; const has = x => isFinite(x) && x !== null;
+  if (has(V) && has(I)) { R = V / I; P = V * I; }
+  else if (has(V) && has(R)) { I = V / R; P = V * I; }
+  else if (has(V) && has(P)) { I = P / V; R = V / I; }
+  else if (has(I) && has(R)) { V = I * R; P = V * I; }
+  else if (has(I) && has(P)) { V = P / I; R = V / I; }
+  else if (has(R) && has(P)) { V = Math.sqrt(P * R); I = V / R; }
+  else { ARK.out("ohm-out", '<p class="hint">Enter any two values.</p>'); return; }
+  const r = (k, val, u) => `<div class="r"><span class="k">${k}</span><span class="v">${ARK.fmt(val, 3)} <span class="u">${u}</span></span></div>`;
+  ARK.out("ohm-out", r("Voltage", V, "V") + r("Current", I, "A") + r("Resistance", R, "Ω") + r("Power", P, "W"));
+});
+ARK.calc("#wire", v => {
+  const drop = v.a * parseFloat(v.awg) / 1000 * v.ft * 2, pct = drop / v.v * 100;
+  ARK.out("vd", ARK.fmt(drop, 2) + ' <span class="u">V (' + ARK.fmt(pct, 1) + "%)</span>");
+  ARK.out("vl", ARK.fmt(v.v - drop, 2) + ' <span class="u">V</span>');
+  ARK.out("verdict", pct <= 3 ? '<span class="level ok">Good</span>' : pct <= 5 ? '<span class="level warn">Marginal</span>' : '<span class="level danger">Too small, go heavier</span>');
+});
+</script>
+{% endblock %}

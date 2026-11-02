@@ -1,0 +1,74 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="f">
+    <h2>Convert</h2>
+    <div class="form-row">
+        <div class="field"><label>Category</label>
+            <select name="cat" id="cat"></select>
+        </div>
+        <div class="field"><label>Value</label><input type="number" name="val" value="1" step="any"></div>
+        <div class="field"><label>From</label><select name="from" id="from"></select></div>
+    </div>
+    <div class="readout" id="results"></div>
+</form>
+<div class="tool-panel prose">
+    <h2>Kitchen weights (1 US cup)</h2>
+    <table>
+        <thead><tr><th>Ingredient</th><th>Grams / cup</th><th>Ingredient</th><th>Grams / cup</th></tr></thead>
+        <tbody>
+            <tr><td>All-purpose flour</td><td>120</td><td>Granulated sugar</td><td>200</td></tr>
+            <tr><td>Bread flour</td><td>127</td><td>Brown sugar (packed)</td><td>213</td></tr>
+            <tr><td>Whole wheat flour</td><td>113</td><td>Powdered sugar</td><td>120</td></tr>
+            <tr><td>Cornmeal</td><td>138</td><td>Honey</td><td>340</td></tr>
+            <tr><td>Rolled oats</td><td>89</td><td>Butter (2 sticks)</td><td>227</td></tr>
+            <tr><td>White rice (dry)</td><td>185</td><td>Oil</td><td>200</td></tr>
+            <tr><td>Dry beans</td><td>180</td><td>Water / milk</td><td>237 / 242</td></tr>
+        </tbody>
+    </table>
+    <p class="hint">1 Tbsp = 3 tsp = 14.8 mL · 1 cup = 16 Tbsp · 1 stick butter = ½ cup = 113 g · 1 packet yeast = 7 g = 2¼ tsp</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  // factors to a base unit per category
+  const U = {
+    "Length": { base: "m", u: { "mm": 0.001, "cm": 0.01, "m": 1, "km": 1000, "in": 0.0254, "ft": 0.3048, "yd": 0.9144, "mi": 1609.344, "nautical mi": 1852 } },
+    "Weight": { base: "g", u: { "g": 1, "kg": 1000, "oz": 28.3495, "lb": 453.592, "ton (US)": 907185, "grain": 0.0647989 } },
+    "Volume": { base: "L", u: { "mL": 0.001, "L": 1, "tsp": 0.00492892, "Tbsp": 0.0147868, "fl oz": 0.0295735, "cup": 0.236588, "pint": 0.473176, "quart": 0.946353, "gallon": 3.78541, "55-gal drum": 208.198, "cubic ft": 28.3168, "cubic m": 1000 } },
+    "Temperature": { temp: true, u: { "°F": 0, "°C": 0, "K": 0 } },
+    "Area": { base: "m²", u: { "sq ft": 0.092903, "sq yd": 0.836127, "m²": 1, "acre": 4046.86, "hectare": 10000, "sq mi": 2589988 } },
+    "Speed": { base: "m/s", u: { "mph": 0.44704, "km/h": 0.277778, "knots": 0.514444, "m/s": 1, "ft/s": 0.3048 } },
+    "Pressure": { base: "kPa", u: { "psi": 6.89476, "kPa": 1, "bar": 100, "inHg": 3.38639, "mmHg": 0.133322, "atm": 101.325 } },
+    "Energy": { base: "J", u: { "Wh": 3600, "kWh": 3.6e6, "kcal (food Cal)": 4184, "BTU": 1055.06, "J": 1, "mAh @ 3.7 V": 13.32, "Ah @ 12 V": 43200 } },
+    "Fuel economy": { inv: true, u: { "mpg (US)": 0, "L/100km": 0, "km/L": 0 } },
+  };
+  const $ = ARK.$;
+  const cat = $("#cat"), from = $("#from");
+  Object.keys(U).forEach(k => cat.add(new Option(k, k)));
+  const fillUnits = () => { const keep = from.value; from.innerHTML = ""; Object.keys(U[cat.value].u).forEach(k => from.add(new Option(k, k))); if (U[cat.value].u[keep] !== undefined) from.value = keep; };
+  const saved = ARK.store.get("calc:" + location.pathname + "#f", {});
+  if (saved.cat) cat.value = saved.cat;
+  fillUnits();
+  if (saved.from) from.value = saved.from;
+  cat.addEventListener("change", fillUnits);
+
+  ARK.calc("#f", v => {
+    const c = U[v.cat]; if (!c || !c.u.hasOwnProperty(v.from)) fillUnits();
+    let rows = [];
+    if (c.temp) {
+      const C = v.from === "°F" ? (v.val - 32) * 5 / 9 : v.from === "K" ? v.val - 273.15 : v.val;
+      rows = [["°F", C * 9 / 5 + 32], ["°C", C], ["K", C + 273.15]];
+    } else if (c.inv) {
+      const mpg = v.from === "mpg (US)" ? v.val : v.from === "L/100km" ? 235.215 / v.val : v.val * 2.35215;
+      rows = [["mpg (US)", mpg], ["L/100km", 235.215 / mpg], ["km/L", mpg / 2.35215]];
+    } else {
+      const base = v.val * c.u[from.value];
+      rows = Object.entries(c.u).map(([k, f]) => [k, base / f]);
+    }
+    ARK.out("results", rows.filter(r => r[0] !== from.value).map(([k, x]) =>
+      `<div class="r"><span class="k">${k}</span><span class="v">${Math.abs(x) >= 0.01 || x === 0 ? ARK.fmt(x, 4) : x.toPrecision(3)}</span></div>`).join(""));
+  });
+})();
+</script>
+{% endblock %}

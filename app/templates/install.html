@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Install ARK·π{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">Progressive Web App</div>
+    <h1>Install ARK·π on your phone</h1>
+    <p class="lede">Installed, ARK·π opens like a native app with its own icon. Every article, every tool and the UI are saved on the device, so it keeps working away from home with no signal.</p>
+</div>
+
+{% if not secure %}
+<div class="callout warn">{{ icon("alert", 22) }}<div><strong>You're on plain HTTP</strong><p>Phones only install apps from HTTPS. Do step 1 below, then open <a href="{{ https_url }}">{{ https_url }}</a>.</p></div></div>
+{% else %}
+<div class="callout" style="border-color:var(--ok);color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent)">{{ icon("check", 22) }}<div><strong>Secure connection</strong><p style="color:var(--text-soft)">You're on HTTPS. Skip to step 2.</p></div></div>
+{% endif %}
+
+<div class="tool-panel prose">
+    <h2>1 · Trust the ARK·π certificate (once per device)</h2>
+    <p>ARK·π signs its own HTTPS certificate so it works with <strong>no internet, ever</strong>. Your device needs to trust ARK's local certificate authority once.</p>
+    {% if has_ca %}<p><a class="button" href="/ark-ca.crt">{{ icon("shield", 16) }} Download ARK·π certificate</a></p>{% else %}<p class="hint">No certificate yet. Run <code>sudo scripts/make-certs.sh</code> on the server.</p>{% endif %}
+
+    <h3>Android</h3>
+    <ol>
+        <li>Download the certificate above.</li>
+        <li>Settings → <strong>Security &amp; privacy</strong> → More security settings → <strong>Encryption &amp; credentials</strong> → <strong>Install a certificate</strong> → <strong>CA certificate</strong> → Install anyway.</li>
+        <li>Pick <code>ARK-Local-CA.crt</code> from Downloads.</li>
+    </ol>
+    <p class="hint">Menu names vary by brand. Search Settings for "CA certificate".</p>
+
+    <h3>iPhone / iPad</h3>
+    <ol>
+        <li>Open this page in <strong>Safari</strong> and tap the download button, then <strong>Allow</strong>.</li>
+        <li>Settings → <strong>Profile Downloaded</strong> → Install (enter passcode).</li>
+        <li>Settings → General → About → <strong>Certificate Trust Settings</strong> → turn on <strong>ARK Local CA</strong>.</li>
+    </ol>
+
+    <h3>Windows / Mac / Linux</h3>
+    <ul>
+        <li><strong>Windows:</strong> double-click the file → Install Certificate → Local Machine → "Trusted Root Certification Authorities".</li>
+        <li><strong>Mac:</strong> double-click → Keychain Access → System → open "ARK Local CA" → Trust → Always Trust.</li>
+        <li><strong>Linux/Chrome:</strong> Settings → Privacy &amp; security → Security → Manage certificates → Authorities → Import.</li>
+    </ul>
+
+    <h2>2 · Install the app</h2>
+    <ul>
+        <li><strong>Android (Chrome):</strong> open <a href="{{ https_url }}">{{ https_url }}</a> → ⋮ menu → <strong>Install app</strong> (or "Add to Home screen").</li>
+        <li><strong>iPhone (Safari):</strong> Share button → <strong>Add to Home Screen</strong>.</li>
+        <li><strong>Desktop Chrome/Edge:</strong> install icon at the right of the address bar.</li>
+    </ul>
+    <p>Open it once while connected so it can save everything (a minute or so). The footer shows how many items are stored on the device.</p>
+
+    <h2>What works offline on the device</h2>
+    <table>
+        <thead><tr><th>Feature</th><th>Away from the server</th></tr></thead>
+        <tbody>
+            <tr><td>All articles, critical info, recipes</td><td>✅ Saved on device</td></tr>
+            <tr><td>Calculators, Morse, Sun &amp; Moon, converters, timers</td><td>✅ Saved on device</td></tr>
+            <tr><td>Manuals you've opened</td><td>✅ Kept after first open</td></tr>
+            <tr><td>Pantry, checklists, logbook, waypoints</td><td>👁 Last-seen copy (read-only)</td></tr>
+            <tr><td>Map tiles, Kiwix libraries</td><td>❌ Too big. Need the ARK·π server</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

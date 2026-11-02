@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Tags{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">Index</div>
+    <h1>All Tags</h1>
+</div>
+<div class="chips" style="gap:0.55rem">
+    {% for tag, n in tags %}
+    <a class="chip {% if tag in ['danger','emergency'] %}danger{% endif %}" href="/tag/{{ tag }}" style="font-size:0.85rem;padding:0.3rem 0.75rem">#{{ tag }} <span style="opacity:.6">{{ n }}</span></a>
+    {% endfor %}
+</div>
+{% endblock %}

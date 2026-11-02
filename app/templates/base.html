@@ -1,0 +1,125 @@
+{% from "_icons.html" import icon %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}The Pocket Ark{% endblock %} · ARK·π</title>
+    <meta name="theme-color" content="#0e110f">
+    <link rel="icon" href="/static/favicon.svg?v=2" type="image/svg+xml">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png?v=2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ARK·π">
+    <script>
+        // Apply saved theme before paint to avoid a flash.
+        try { document.documentElement.dataset.theme = localStorage.getItem("theme") || "dark"; } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/static/style.css?v={{ v }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+{% set p = path %}
+{% set sec = 'faith' if (p == '/faith' or p.startswith('/faith/') or p == '/devotional') else 'bible' if p.startswith('/bible') else 'recipes' if p.startswith('/recipes') else 'tools' if p.startswith('/tools') else 'map' if p == '/map' else 'media' if p.startswith('/media') else 'library' if (p == '/library' or p.startswith('/kiwix')) else 'critical' if p == '/critical' else 'home' if p == '/' else 'topic' %}
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" href="/" aria-label="ARK·π home">
+            <img class="brand-logo" src="/static/img/ark-logo.svg" width="36" height="36" alt="">
+            <span class="brand-text">
+                <span class="brand-name">ARK<span class="pi">·<i>π</i></span></span>
+                <span class="brand-sub">THE POCKET ARK</span>
+            </span>
+        </a>
+
+        <nav class="mainnav" aria-label="Main">
+            <details class="nav-drop">
+                <summary class="{% if sec == 'topic' %}active{% endif %}">{{ icon("menu", 16) }} Topics</summary>
+                <div class="drop">
+                    {% for c in nav_categories %}
+                    <a href="/{{ c.name }}" class="{% if p == '/' ~ c.name or p.startswith('/' ~ c.name ~ '/') %}active{% endif %}">
+                        {{ icon(c.icon, 18) }}<span><strong>{{ c.label }}</strong><small>{{ c.count }} articles</small></span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </details>
+            <a href="/faith" class="{% if sec == 'faith' %}active{% endif %}">{{ icon("cross", 16) }} Faith</a>
+            <a href="/bible" class="{% if sec == 'bible' %}active{% endif %}">{{ icon("bible", 16) }} Bible</a>
+            <a href="/recipes" class="{% if sec == 'recipes' %}active{% endif %}">{{ icon("bread", 16) }} Recipes</a>
+            <a href="/tools" class="{% if sec == 'tools' %}active{% endif %}">{{ icon("tools", 16) }} Tools</a>
+            <a href="/map" class="{% if sec == 'map' %}active{% endif %}">{{ icon("map", 16) }} Map</a>
+            <a href="/media" class="{% if sec == 'media' %}active{% endif %}">{{ icon("film", 16) }} Media</a>
+            <a href="/library" class="{% if sec == 'library' %}active{% endif %}">{{ icon("book", 16) }} Library</a>
+        </nav>
+
+        <div class="topbar-actions">
+            <button type="button" class="icon-btn" id="search-toggle" aria-label="Search (/)" title="Search ( / )">{{ icon("search", 18) }}</button>
+            <a class="crit-pill {% if sec == 'critical' %}active{% endif %}" href="/critical">{{ icon("alert", 15) }}<span>Critical</span></a>
+            <div class="theme-switch" role="group" aria-label="Theme">
+                <button type="button" data-set-theme="dark" title="Dark mode">{{ icon("moon", 16) }}</button>
+                <button type="button" data-set-theme="paper" title="Paper / daylight mode">{{ icon("sun", 16) }}</button>
+                <button type="button" data-set-theme="night" title="Red night-vision mode">{{ icon("eye", 16) }}</button>
+            </div>
+            <button type="button" class="icon-btn menu-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false">{{ icon("menu", 20) }}</button>
+        </div>
+    </div>
+    <form class="search-drawer" id="search-drawer" action="/search" method="get" role="search" {% if not query %}hidden{% endif %}>
+        <div class="search-drawer-inner">
+            {{ icon("search", 18) }}
+            <input type="search" name="q" placeholder="Search articles, recipes, Wikipedia, iFixit…" value="{{ query | default('') }}" aria-label="Search" id="global-search">
+            <button class="button small" type="submit">Search</button>
+        </div>
+    </form>
+</header>
+
+<div class="menu-sheet" id="menu-sheet" hidden>
+    <div class="menu-sheet-inner">
+        <div class="menu-grid">
+            <a href="/critical" class="menu-tile crit">{{ icon("alert", 22) }}<span>Critical</span></a>
+            <a href="/faith" class="menu-tile {% if sec == 'faith' %}active{% endif %}">{{ icon("cross", 22) }}<span>Faith</span></a>
+            <a href="/bible" class="menu-tile {% if sec == 'bible' %}active{% endif %}">{{ icon("bible", 22) }}<span>Bible</span></a>
+            <a href="/recipes" class="menu-tile {% if sec == 'recipes' %}active{% endif %}">{{ icon("bread", 22) }}<span>Recipes</span></a>
+            <a href="/tools" class="menu-tile {% if sec == 'tools' %}active{% endif %}">{{ icon("tools", 22) }}<span>Tools</span></a>
+            <a href="/map" class="menu-tile {% if sec == 'map' %}active{% endif %}">{{ icon("map", 22) }}<span>Map</span></a>
+            <a href="/media" class="menu-tile {% if sec == 'media' %}active{% endif %}">{{ icon("film", 22) }}<span>Books &amp; Media</span></a>
+            <a href="/library" class="menu-tile {% if sec == 'library' %}active{% endif %}">{{ icon("book", 22) }}<span>Library</span></a>
+            <a href="/devotional" class="menu-tile">{{ icon("sun", 22) }}<span>Devotional</span></a>
+        </div>
+        <div class="menu-head">Topics</div>
+        <div class="menu-list">
+            {% for c in nav_categories %}<a href="/{{ c.name }}">{{ icon(c.icon, 18) }}<span>{{ c.label }}</span><small>{{ c.count }}</small></a>{% endfor %}
+        </div>
+        <div class="menu-head">Display</div>
+        <div class="theme-switch big" role="group" aria-label="Theme">
+            <button type="button" data-set-theme="dark">{{ icon("moon", 16) }} Dark</button>
+            <button type="button" data-set-theme="paper">{{ icon("sun", 16) }} Paper</button>
+            <button type="button" data-set-theme="night">{{ icon("eye", 16) }} Night</button>
+        </div>
+        <div class="menu-foot"><a href="/install">Install app</a> · <a href="/import">Import</a> · <a href="/tags">All tags</a></div>
+    </div>
+</div>
+
+<main class="container {% block container_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+    <div class="footer-inner">
+        <span>ARK·<i class="pi-glyph">π</i> · The Pocket Ark · <span id="net-status">runs with zero internet</span></span>
+        <span><a href="/tags">All tags</a> · <a href="/critical">Critical</a> · <a href="/tools">Tools</a> · <a href="/map">Map</a> · <a href="/library">Library</a> · <a href="/import">Import</a> · <a href="/install">Install app</a></span>
+    </div>
+</footer>
+
+<nav class="tabbar" aria-label="Quick">
+    <a href="/" class="{% if sec == 'home' %}active{% endif %}">{{ icon("home", 22) }}<span>Home</span></a>
+    <a href="/critical" class="crit {% if sec == 'critical' %}active{% endif %}">{{ icon("alert", 22) }}<span>Critical</span></a>
+    <a href="/bible" class="{% if sec == 'bible' %}active{% endif %}">{{ icon("bible", 22) }}<span>Bible</span></a>
+    <a href="/tools" class="{% if sec == 'tools' %}active{% endif %}">{{ icon("tools", 22) }}<span>Tools</span></a>
+    <a href="/map" class="{% if sec == 'map' %}active{% endif %}">{{ icon("map", 22) }}<span>Map</span></a>
+</nav>
+
+<script src="/static/app.js?v={{ v }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

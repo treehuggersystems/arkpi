@@ -1,0 +1,62 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="new">
+    <h2>New timer</h2>
+    <div class="form-row">
+        <div class="field"><label>Label</label><input type="text" name="label" placeholder="Biscuits, bulk ferment, boil water…"></div>
+        <div class="field"><label>Hours</label><input type="number" name="h" value="0" min="0"></div>
+        <div class="field"><label>Minutes</label><input type="number" name="m" value="10" min="0"></div>
+        <div class="field"><label>Seconds</label><input type="number" name="s" value="0" min="0"></div>
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="button" type="submit">{{ icon("clock", 16) }} Start</button>
+        {% for label, secs in [("Boil water 1 min", 60), ("Bleach wait 30 min", 1800), ("Biscuits 10 min", 600), ("Bench rest 15 min", 900), ("Autolyse 1 hr", 3600), ("Tourniquet check 2 hr", 7200)] %}
+        <button class="button small ghost" type="button" data-preset="{{ secs }}" data-label="{{ label }}">{{ label }}</button>
+        {% endfor %}
+    </div>
+</form>
+<div id="timers" class="list"></div>
+<p class="hint" style="margin-top:1rem">Timers survive page reloads (stored in this browser). Keep this tab open for the alarm sound.</p>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const { $, store, beep } = ARK;
+  let timers = store.get("timers", []);
+  const save = () => store.set("timers", timers);
+  const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); };
+  const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  function add(label, secs) { timers.push({ id: Date.now() + Math.random(), label: label || "Timer", end: Date.now() + secs * 1000, total: secs * 1000, paused: null }); save(); render(); }
+  $("#new").addEventListener("submit", e => { e.preventDefault(); const f = e.target; add(f.label.value, (+f.h.value || 0) * 3600 + (+f.m.value || 0) * 60 + (+f.s.value || 0)); });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => add(b.dataset.label, +b.dataset.preset)));
+  function render() {
+    $("#timers").innerHTML = timers.map(t => `<div class="card timer-card" data-id="${t.id}">
+      <span class="t" data-t>--:--</span><div style="flex:1;min-width:140px"><strong>${esc(t.label)}</strong><div class="hint">${fmt(t.total)} total</div></div>
+      <button class="button small ghost" data-act="pause">${t.paused ? "Resume" : "Pause"}</button>
+      <button class="button small ghost" data-act="add">+1 min</button>
+      <button class="button small ghost" data-act="del">✕</button></div>`).join("") || '<div class="card hint">No timers running.</div>';
+    tick();
+  }
+  $("#timers").addEventListener("click", e => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const t = timers.find(x => String(x.id) === b.closest("[data-id]").dataset.id);
+    if (b.dataset.act === "del") timers = timers.filter(x => x !== t);
+    if (b.dataset.act === "add") { if (t.paused) t.paused += 60000; else t.end = Math.max(t.end, Date.now()) + 60000; t.rang = false; }
+    if (b.dataset.act === "pause") { if (t.paused) { t.end = Date.now() + t.paused; t.paused = null; } else t.paused = t.end - Date.now(); }
+    save(); render();
+  });
+  function tick() {
+    timers.forEach(t => {
+      const el = document.querySelector(`[data-id="${t.id}"]`); if (!el) return;
+      const left = t.paused ?? (t.end - Date.now());
+      el.querySelector("[data-t]").textContent = left <= 0 ? "DONE" : fmt(left);
+      el.classList.toggle("ring", left <= 0);
+      if (left <= 0 && !t.paused && Date.now() - t.end < 60000) { beep(880, 180); setTimeout(() => beep(1175, 180), 220); }
+      if (left <= 0 && !t.rang) { t.rang = true; save(); document.title = "⏰ " + t.label; }
+    });
+  }
+  setInterval(tick, 1000);
+  render();
+})();
+</script>
+{% endblock %}

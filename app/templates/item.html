@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }}{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="/">Home</a> / <a href="/{{ category }}">{{ cat.label }}</a> / <span>{{ doc.title }}</span></div>
+
+<div class="article-layout">
+    <article>
+        <header class="article-head">
+            <div class="eyebrow">{{ cat.label }}</div>
+            <h1>{{ doc.title }}</h1>
+            <div class="article-meta">
+                {% for tag in doc.tags %}<a class="chip {% if tag in ['danger','emergency'] %}danger{% endif %}" href="/tag/{{ tag }}">#{{ tag }}</a>{% endfor %}
+                <button class="button ghost small no-print" type="button" onclick="window.print()" style="margin-left:auto">{{ icon("printer", 15) }} Print</button>
+            </div>
+        </header>
+
+        {% if hazard %}
+        <div class="callout danger">{{ icon("alert", 22) }}<div><strong>Warning</strong><p>This entry involves potential hazards. Read it fully before starting and proceed carefully.</p></div></div>
+        {% endif %}
+        {% if priority and not hazard %}
+        <div class="callout warn">{{ icon("bolt", 22) }}<div><strong>Priority information</strong><p>Life-safety content. Seek professional medical care whenever it is available.</p></div></div>
+        {% endif %}
+
+        <div class="prose">
+            {{ content | safe }}
+        </div>
+    </article>
+
+    <aside class="side">
+        {% if toc %}
+        <div class="side-box">
+            <h4>On this page</h4>
+            <ul>
+                {% for t in toc %}
+                <li><a href="#{{ t.id }}">{{ t.name | striptags }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% if related %}
+        <div class="side-box">
+            <h4>More in {{ cat.label }}</h4>
+            <ul>
+                {% for r in related %}<li><a href="/{{ r.category }}/{{ r.name }}">{{ r.title }}</a></li>{% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </aside>
+</div>
+{% endblock %}

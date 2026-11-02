@@ -1,0 +1,80 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="f">
+    <h2 id="form-title">Add item</h2>
+    <input type="hidden" name="id">
+    <div class="form-row">
+        <div class="field"><label>Item</label><input type="text" name="name" required placeholder="White rice, Mylar 5 gal"></div>
+        <div class="field"><label>Quantity</label><input type="text" name="qty" placeholder="35 lb / 4 cans"></div>
+        <div class="field"><label>Location</label><input type="text" name="location" placeholder="Basement shelf B" list="locs"></div>
+        <div class="field"><label>Best by / expires</label><input type="date" name="expires"></div>
+    </div>
+    <div class="field"><label>Notes</label><input type="text" name="notes" placeholder="Packed Mar 2026 w/ O₂ absorber"></div>
+    <datalist id="locs"></datalist>
+    <button class="button" type="submit">{{ icon("check", 16) }} Save</button>
+    <button class="button ghost" type="reset" id="cancel">Clear</button>
+</form>
+<div class="tool-panel">
+    <div style="display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap;margin-bottom:0.8rem">
+        <h2 style="margin:0">Inventory <span class="mono hint" id="count"></span></h2>
+        <input type="search" id="q" placeholder="Filter…" style="max-width:220px;margin-left:auto;padding:0.35rem 0.6rem">
+        <button class="button small ghost" type="button" id="csv">Export CSV</button>
+    </div>
+    <div id="summary" class="chips" style="margin-bottom:0.8rem"></div>
+    <div class="table-wrap" style="border:0"><table class="data-table">
+        <thead><tr><th>Item</th><th>Qty</th><th>Location</th><th>Expires</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+    </table></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const { $ } = ARK;
+  const f = $("#f");
+  let items = [];
+  const esc = s => String(s || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const daysLeft = d => d ? Math.floor((new Date(d + "T00:00") - new Date().setHours(0, 0, 0, 0)) / 86400000) : null;
+  async function load() { items = await (await fetch("/api/pantry")).json(); render(); }
+  function render() {
+    const q = $("#q").value.toLowerCase();
+    const list = items.filter(i => !q || JSON.stringify(i).toLowerCase().includes(q))
+      .sort((a, b) => (a.expires || "9999").localeCompare(b.expires || "9999"));
+    const expired = items.filter(i => { const d = daysLeft(i.expires); return d !== null && d < 0; }).length;
+    const soon = items.filter(i => { const d = daysLeft(i.expires); return d !== null && d >= 0 && d <= 60; }).length;
+    $("#count").textContent = `(${items.length})`;
+    $("#summary").innerHTML = (expired ? `<span class="chip danger">${expired} expired</span>` : "") + (soon ? `<span class="chip" style="color:var(--warn)">${soon} expiring within 60 days</span>` : "") || '<span class="chip">All good</span>';
+    $("#rows").innerHTML = list.map(i => {
+      const d = daysLeft(i.expires);
+      const cls = d === null ? "" : d < 0 ? "expired" : d <= 60 ? "soon" : "";
+      const when = d === null ? "-" : `${i.expires} <span class="hint">(${d < 0 ? -d + "d ago" : d + "d"})</span>`;
+      return `<tr class="${cls}"><td><strong>${esc(i.name)}</strong></td><td>${esc(i.qty)}</td><td>${esc(i.location)}</td><td class="mono">${when}</td><td class="hint">${esc(i.notes)}</td>
+        <td style="white-space:nowrap"><button class="button small ghost" data-edit="${esc(i.id)}">Edit</button> <button class="button small ghost" data-del="${esc(i.id)}">✕</button></td></tr>`;
+    }).join("") || '<tr><td colspan="6" class="hint">Nothing stored yet. Add your first item above.</td></tr>';
+    $("#locs").innerHTML = [...new Set(items.map(i => i.location).filter(Boolean))].map(l => `<option value="${esc(l)}">`).join("");
+  }
+  f.addEventListener("submit", async e => {
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(f));
+    await fetch("/api/pantry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    f.reset(); f.id.value = ""; $("#form-title").textContent = "Add item"; load();
+  });
+  $("#cancel").addEventListener("click", () => { f.id.value = ""; $("#form-title").textContent = "Add item"; });
+  $("#rows").addEventListener("click", async e => {
+    const ed = e.target.closest("[data-edit]"), del = e.target.closest("[data-del]");
+    if (ed) { const i = items.find(x => x.id === ed.dataset.edit); Object.entries(i).forEach(([k, v]) => { if (f[k]) f[k].value = v; }); $("#form-title").textContent = "Edit item"; f.scrollIntoView({ behavior: "smooth" }); }
+    if (del) {
+      if (del.dataset.confirm !== "1") { del.dataset.confirm = "1"; del.textContent = "Sure?"; setTimeout(() => { del.dataset.confirm = ""; del.textContent = "✕"; }, 3000); return; }
+      await fetch("/api/pantry/" + encodeURIComponent(del.dataset.del), { method: "DELETE" }); load();
+    }
+  });
+  $("#q").addEventListener("input", render);
+  $("#csv").addEventListener("click", () => {
+    const cols = ["name", "qty", "location", "expires", "notes"];
+    const csv = [cols.join(",")].concat(items.map(i => cols.map(c => `"${String(i[c] || "").replace(/"/g, '""')}"`).join(","))).join("\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "pantry.csv"; a.click();
+  });
+  load();
+})();
+</script>
+{% endblock %}

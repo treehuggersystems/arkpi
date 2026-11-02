@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ heading }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">{{ eyebrow }}</div>
+    <h1>{{ heading }}</h1>
+    {% if intro %}<p class="lede">{{ intro }}</p>{% endif %}
+</div>
+
+<div class="list">
+    {% for d in results %}
+    <a class="row-link {% if d.critical %}critical{% endif %}" href="/{{ d.category }}/{{ d.name }}">
+        <span class="row-ico">{{ icon(d.critical and 'alert' or 'file') }}</span>
+        <span class="row-main">
+            <span class="row-title">{{ d.title }}</span>
+            <span class="row-sub">{{ d.summary or d.tags | join(" · ") }}</span>
+        </span>
+        <span class="row-meta">{{ d.category }}</span>
+    </a>
+    {% else %}
+    <div class="card">{{ empty | default("Nothing here yet.") }}</div>
+    {% endfor %}
+</div>
+
+<p style="margin-top:2rem"><a href="/">← Home</a></p>
+{% endblock %}

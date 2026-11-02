@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- ARK·π mark: an ark whose cabin is a π, broadcasting over the water. Shelter · signal · Raspberry Pi. -->
+  <rect width="64" height="64" rx="14" fill="#e3a33b"/>
+  <g fill="none" stroke="#1a1306" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24.5 14.5 A10.5 10.5 0 0 1 39.5 14.5" stroke-width="3"/>
+    <path d="M19 10 A17.5 17.5 0 0 1 45 10" stroke-width="2.5" opacity=".6"/>
+    <path d="M17 27 Q17.5 24 21 24 H46" stroke-width="4.5"/>
+    <path d="M26 24 V39.5" stroke-width="4.5"/>
+    <path d="M38 24 V35.5 Q38 39.5 42 39.5" stroke-width="4.5"/>
+    <path d="M8 55 q4 -3 8 0 t8 0 t8 0 t8 0 t8 0 t8 0" stroke-width="2.5" opacity=".55"/>
+  </g>
+  <path d="M8 41 H56 L49 50 H15 Z" fill="#1a1306"/>
+</svg>

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Bible in a Year · Day {{ day }}{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="/bible">Bible</a> / <span>Reading plan</span></div>
+<div class="page-head">
+    <div class="eyebrow">Bible in a year · Old &amp; New Testament together</div>
+    <h1>Day {{ day }}</h1>
+    <div class="actions">
+        <a class="button ghost small" href="/bible/plan?day={{ (day - 2) % 365 + 1 }}">{{ icon("arrow-left", 14) }} Day {{ (day - 2) % 365 + 1 }}</a>
+        <a class="button ghost small" href="/bible/plan">Today</a>
+        <a class="button ghost small" href="/bible/plan?day={{ day % 365 + 1 }}">Day {{ day % 365 + 1 }} {{ icon("arrow-right", 14) }}</a>
+        <form action="/bible/plan" style="display:flex;gap:0.4rem"><input type="number" name="day" min="1" max="365" placeholder="Day #" style="width:6.5rem;padding:0.3rem 0.6rem"><button class="button small" type="submit">Go</button></form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="eyebrow">Today's reading</div>
+    <div class="list" style="margin-top:0.6rem">
+        {% for c in chapters %}
+        <label class="cl-item plan-item" data-key="{{ day }}-{{ c.book.slug }}-{{ c.chapter }}">
+            <input type="checkbox">
+            <a href="/bible/{{ c.book.slug }}/{{ c.chapter }}">{{ "Psalm" if c.book.name == "Psalms" else c.book.name }} {{ c.chapter }}</a>
+        </label>
+        {% endfor %}
+    </div>
+</div>
+<p class="hint" style="margin-top:1rem">The plan walks through the Old Testament (≈2½ chapters/day) and New Testament (≈¾ chapter/day) side by side and finishes both on day 365. Check-offs are saved in this browser.</p>
+<style>
+.plan-item { display: flex; gap: 0.7rem; align-items: center; padding: 0.55rem 0.3rem; border-bottom: 1px solid var(--border); }
+.plan-item input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
+.plan-item.done a { color: var(--muted); text-decoration: line-through; }
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll(".plan-item").forEach(el => {
+  const k = "plan:" + el.dataset.key, box = el.querySelector("input");
+  box.checked = !!ARK.store.get(k, false); el.classList.toggle("done", box.checked);
+  box.addEventListener("change", () => { ARK.store.set(k, box.checked); el.classList.toggle("done", box.checked); });
+});
+</script>
+{% endblock %}

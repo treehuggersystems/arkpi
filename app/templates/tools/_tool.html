@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ tool.title }}{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="/">Home</a> / <a href="/tools">Tools</a> / <span>{{ tool.title }}</span></div>
+<div class="page-head">
+    <div class="eyebrow">Tool</div>
+    <h1>{{ tool.title }}</h1>
+    <p class="lede">{{ tool.blurb }}</p>
+</div>
+
+<div class="tool-layout">
+    <div>
+        {% block tool %}{% endblock %}
+    </div>
+    <aside class="side">
+        <div class="side-box tool-nav">
+            <h4>All tools</h4>
+            <ul>
+                <li><a href="/map">{{ icon("map", 15) }} Offline Map</a></li>
+                {% for slug, title, blurb, ico in tools %}
+                <li><a href="/tools/{{ slug }}" class="{% if slug == tool.slug %}active{% endif %}">{{ icon(ico, 15) }} {{ title }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% block side %}{% endblock %}
+    </aside>
+</div>
+{% endblock %}

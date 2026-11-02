@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Morning & Evening · {{ day.strftime("%B %-d") }}{% endblock %}
+{% block container_class %}narrow{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="/faith">Faith</a> / <span>Morning &amp; Evening</span></div>
+<div class="page-head">
+    <div class="eyebrow">C. H. Spurgeon · Morning and Evening</div>
+    <h1>{{ day.strftime("%B %-d") }}</h1>
+    <div class="actions">
+        <a class="button ghost small" href="/devotional?d={{ prev }}">{{ icon("arrow-left", 14) }} Previous day</a>
+        {% if key != today %}<a class="button ghost small" href="/devotional">Today</a>{% endif %}
+        <a class="button ghost small" href="/devotional?d={{ next }}">Next day {{ icon("arrow-right", 14) }}</a>
+        <a class="button ghost small" href="#evening">Jump to evening</a>
+    </div>
+</div>
+
+{% for label, r, anchor in [("Morning", morning, "morning"), ("Evening", evening, "evening")] %}
+<article class="devo" id="{{ anchor }}">
+    <div class="eyebrow">{{ icon("sun" if anchor == "morning" else "moon", 14) }} {{ label }}</div>
+    <blockquote class="devo-verse">{{ r.verse }}<cite>{% if r.url %}<a href="{{ r.url }}">{{ r.ref }}</a>{% else %}{{ r.ref }}{% endif %}</cite></blockquote>
+    <div class="devo-text">{% for p in r.text %}<p>{{ p }}</p>{% endfor %}</div>
+</article>
+{% endfor %}
+<p class="hint">Charles Haddon Spurgeon (1834–1892) pastored London's Metropolitan Tabernacle and is often called the "Prince of Preachers." <em>Morning and Evening</em> is public domain; text from the Christian Classics Ethereal Library.</p>
+<style>
+.devo { margin: 1.5rem 0 2.5rem; }
+.devo-verse { margin: 0.6rem 0 1.2rem; padding: 1rem 1.2rem; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-family: Georgia, serif; font-size: 1.25rem; font-style: italic; }
+.devo-verse cite { display: block; margin-top: 0.4rem; font-style: normal; font-family: var(--font-mono); font-size: 0.78rem; }
+.devo-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 1.12rem; line-height: 1.8; }
+</style>
+{% endblock %}
+{% block scripts %}
+<script>if (!location.hash && new Date().getHours() >= 16 && "{{ key }}" === "{{ today }}") document.getElementById("evening").scrollIntoView();</script>
+{% endblock %}

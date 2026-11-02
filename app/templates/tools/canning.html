@@ -1,0 +1,73 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="f">
+    <h2>What are you canning?</h2>
+    <div class="field"><label>Food</label><select name="food" id="food"></select></div>
+    <div class="form-row">
+        <div class="field"><label>Jar size</label>
+            <select name="jar"><option value="pint">Half-pint / pint</option><option value="quart">Quart</option></select>
+        </div>
+        <div class="field"><label>Altitude (ft)</label><input type="number" name="alt" value="800" min="0" step="100"><span class="hint">Most of KY/OH: 400–1,000 ft</span></div>
+        <div class="field"><label>Pressure gauge</label>
+            <select name="gauge"><option value="weighted">Weighted gauge (jiggler)</option><option value="dial">Dial gauge</option></select>
+        </div>
+    </div>
+    <div id="result"></div>
+</form>
+<div class="callout danger">{{ icon("alert", 22) }}<div><strong>Low-acid foods must be pressure canned</strong><p>Vegetables, meats, beans, soups and fish carry botulism risk that boiling water can't kill. Follow a tested recipe exactly; don't thicken, add extra low-acid ingredients, or shorten times. When in doubt, throw it out.</p></div></div>
+<div class="tool-panel prose">
+    <h2>Guides</h2>
+    <ul>
+        <li><a href="/food/canning_safety">Canning safety &amp; step-by-step</a></li>
+        <li><a href="/food/canning_vegetables">Canning vegetables</a> · <a href="/food/canning_meat_poultry_fish">Meat, poultry &amp; fish</a> · <a href="/food/canning_fruits_jams">Fruits &amp; jams</a> · <a href="/food/pickling_and_fermenting">Pickles</a></li>
+        <li><a href="/food/canning_troubleshooting">Troubleshooting: seals, siphoning, spoilage</a></li>
+        <li><a href="/food/preserved_food_storage_life">How long preserved food lasts</a></li>
+    </ul>
+    <p class="hint">Source: USDA Complete Guide to Home Canning (2015) / NCHFP. Times assume standard jar sizes and the pack style shown.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function () {
+  const data = await (await fetch("/static/data/canning.json")).json();
+  const sel = document.getElementById("food");
+  Object.entries(data.groups).forEach(([g, label]) => {
+    const og = document.createElement("optgroup"); og.label = label;
+    data.foods.filter(f => f.group === g).forEach(f => og.appendChild(new Option(f.name, f.id)));
+    sel.appendChild(og);
+  });
+  const pick = (table, alt) => (table.find(([max]) => alt <= max) || table[table.length - 1])[1];
+  ARK.calc("#f", v => {
+    const f = data.foods.find(x => x.id === v.food) || data.foods[0];
+    const alt = Math.max(0, v.alt || 0);
+    const base = f[v.jar];
+    let html;
+    if (!base) {
+      html = `<div class="callout warn" style="margin-top:1rem"><div><strong>No tested time for quarts</strong><p>${f.note || "Use half-pints or pints for this food."}</p></div></div>`;
+    } else if (f.method === "pressure") {
+      const psi = v.gauge === "dial" ? pick(data.pressure_dial, alt) : pick(data.pressure_weighted, alt);
+      html = `<div class="readout">
+        <div class="r big"><span class="k">Method</span><span class="v">Pressure canner</span></div>
+        <div class="r"><span class="k">Pressure</span><span class="v">${psi} <span class="u">psi (${v.gauge})</span></span></div>
+        <div class="r"><span class="k">Process time</span><span class="v">${base} <span class="u">min</span></span></div>
+        <div class="r"><span class="k">Headspace</span><span class="v">${f.headspace}</span></div>
+        <div class="r"><span class="k">Pack</span><span class="v" style="font-size:1.1rem">${f.pack}</span></div>
+      </div>
+      <p class="hint" style="margin-top:0.8rem">Vent steam 10 min before pressurizing. Start timing at full pressure; if it drops below, bring it back up and <strong>restart the time</strong>. Let it depressurize naturally.</p>`;
+    } else {
+      const add = pick(data.waterbath_add, alt);
+      html = `<div class="readout">
+        <div class="r big"><span class="k">Method</span><span class="v">Boiling water bath</span></div>
+        <div class="r"><span class="k">Process time</span><span class="v">${base + add} <span class="u">min${add ? ` (${base} + ${add} for altitude)` : ""}</span></span></div>
+        <div class="r"><span class="k">Headspace</span><span class="v">${f.headspace}</span></div>
+        <div class="r"><span class="k">Pack</span><span class="v" style="font-size:1.1rem">${f.pack}</span></div>
+      </div>
+      ${f.acid ? `<div class="callout warn" style="margin-top:1rem"><div><strong>Add acid to every jar</strong><p>Per pint: 1 Tbsp bottled lemon juice or ¼ tsp citric acid. Per quart: 2 Tbsp lemon juice or ½ tsp citric acid.</p></div></div>` : ""}
+      <p class="hint" style="margin-top:0.8rem">Jars covered by 1–2 in of water at a full rolling boil before timing starts. After processing, turn off heat and let jars sit 5 min before removing.</p>`;
+    }
+    if (f.note && base) html += `<p style="margin-top:0.6rem"><strong>Note:</strong> ${f.note}</p>`;
+    document.getElementById("result").innerHTML = html;
+  });
+})();
+</script>
+{% endblock %}

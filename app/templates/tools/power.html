@@ -1,0 +1,98 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<div class="tool-panel">
+    <h2>Loads</h2>
+    <table class="data-table" id="loads">
+        <thead><tr><th>Device</th><th>Watts</th><th>Hours / day</th><th>Qty</th><th>Wh / day</th><th></th></tr></thead>
+        <tbody></tbody>
+    </table>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.8rem">
+        <button class="button small ghost" type="button" id="add">{{ icon("plus", 14) }} Add device</button>
+        <select id="preset" style="max-width:260px;padding:0.3rem 0.5rem"><option value="">+ Add common device…</option></select>
+    </div>
+</div>
+<form class="tool-panel" id="f">
+    <h2>System</h2>
+    <div class="form-row">
+        <div class="field"><label>Battery voltage</label><select name="volt"><option>12</option><option selected>24</option><option>48</option></select></div>
+        <div class="field"><label>Battery chemistry</label>
+            <select name="chem"><option value="0.85">LiFePO4 (use 85%)</option><option value="0.5">Lead-acid / AGM (use 50%)</option></select>
+        </div>
+        <div class="field"><label>Days of autonomy (no sun)</label><input type="number" name="days" value="2" min="0.5" step="0.5"></div>
+    </div>
+    <div class="form-row">
+        <div class="field"><label>Peak sun hours</label><input type="number" name="psh" value="3" step="0.1"><span class="hint">Ohio Valley: ~4.5 summer, ~2.5 winter</span></div>
+        <div class="field"><label>Inverter efficiency %</label><input type="number" name="inv" value="90"></div>
+        <div class="field"><label>Solar derate %</label><input type="number" name="derate" value="75"><span class="hint">heat, dirt, wiring, angle</span></div>
+    </div>
+    <div class="readout">
+        <div class="r big"><span class="k">Daily energy use</span><span class="v" id="wh">-</span></div>
+        <div class="r"><span class="k">Battery bank</span><span class="v" id="ah">-</span></div>
+        <div class="r"><span class="k">Battery capacity</span><span class="v" id="kwh">-</span></div>
+        <div class="r"><span class="k">Solar array</span><span class="v" id="pv">-</span></div>
+        <div class="r"><span class="k">Charge controller</span><span class="v" id="cc">-</span></div>
+        <div class="r"><span class="k">Peak load (inverter)</span><span class="v" id="peak">-</span></div>
+    </div>
+</form>
+<div class="tool-panel prose">
+    <h2>Notes</h2>
+    <ul>
+        <li>Motors (fridges, pumps, power tools) surge to <strong>3–7× running watts</strong> on start. Size the inverter for the surge.</li>
+        <li>Fridge and freezer wattage here is <em>average</em> draw (compressors cycle). Measure yours with a plug-in watt meter for real numbers.</li>
+        <li>Controller current = array watts ÷ battery volts × 1.25 safety margin (MPPT).</li>
+        <li><a href="/power">Power &amp; EMP guides →</a></li>
+    </ul>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const { $, store, fmt, out } = ARK;
+  const PRESETS = [
+    ["Refrigerator (avg)", 60, 24], ["Chest freezer (avg)", 40, 24], ["LED bulb", 9, 5], ["Phone charging", 10, 2],
+    ["Laptop", 50, 4], ["Raspberry Pi server", 6, 24], ["Wi-Fi router", 10, 24], ["CPAP (no humidifier)", 40, 8],
+    ["Ham radio (receive)", 15, 4], ["Ham radio (100 W transmit)", 250, 0.5], ["Well pump (1 hp)", 1000, 1],
+    ["Furnace blower", 500, 6], ["TV (LED 50\")", 80, 3], ["Microwave", 1100, 0.25], ["Coffee maker", 900, 0.2],
+    ["Box fan", 60, 8], ["Space heater (avoid!)", 1500, 2], ["Sump pump", 800, 1], ["Power tools", 700, 0.5],
+  ];
+  PRESETS.forEach((p, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${p[0]} — ${p[1]} W`; $("#preset").appendChild(o); });
+  let loads = store.get("power:loads", [["Refrigerator (avg)", 60, 24, 1], ["LED bulb", 9, 5, 4], ["Phone charging", 10, 2, 3], ["Raspberry Pi server", 6, 24, 1]]);
+  let recalc;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  function render() {
+    $("#loads tbody").innerHTML = loads.map((l, i) => `<tr data-i="${i}">
+      <td><input type="text" value="${esc(l[0])}" data-k="0"></td>
+      <td><input type="number" value="${l[1]}" data-k="1" style="width:6rem"></td>
+      <td><input type="number" value="${l[2]}" data-k="2" step="0.25" style="width:6rem"></td>
+      <td><input type="number" value="${l[3]}" data-k="3" style="width:4.5rem"></td>
+      <td class="mono">${fmt(l[1] * l[2] * l[3], 0)}</td>
+      <td><button class="button small ghost" type="button" data-del title="Remove">✕</button></td></tr>`).join("");
+    store.set("power:loads", loads);
+    recalc && recalc();
+  }
+  $("#loads").addEventListener("change", e => {
+    const tr = e.target.closest("tr"); if (!tr || e.target.dataset.k === undefined) return;
+    const k = +e.target.dataset.k; loads[+tr.dataset.i][k] = k === 0 ? e.target.value : parseFloat(e.target.value) || 0; render();
+  });
+  $("#loads").addEventListener("click", e => { if (e.target.closest("[data-del]")) { loads.splice(+e.target.closest("tr").dataset.i, 1); render(); } });
+  $("#add").addEventListener("click", () => { loads.push(["Device", 50, 1, 1]); render(); });
+  $("#preset").addEventListener("change", e => { if (e.target.value === "") return; const p = PRESETS[+e.target.value]; loads.push([p[0], p[1], p[2], 1]); e.target.value = ""; render(); });
+
+  recalc = ARK.calc("#f", v => {
+    const dcWh = loads.reduce((t, l) => t + l[1] * l[2] * l[3], 0);
+    const wh = dcWh / ((v.inv || 90) / 100);
+    const peak = loads.reduce((t, l) => t + l[1] * l[3], 0);
+    const bankWh = wh * v.days / parseFloat(v.chem);
+    const volt = parseFloat(v.volt);
+    const pv = wh / (v.psh || 1) / ((v.derate || 75) / 100);
+    out("wh", fmt(wh, 0) + ' <span class="u">Wh/day (' + fmt(wh / 1000, 2) + " kWh)</span>");
+    out("ah", fmt(bankWh / volt, 0) + ' <span class="u">Ah @ ' + volt + " V</span>");
+    out("kwh", fmt(bankWh / 1000, 1) + ' <span class="u">kWh</span>');
+    out("pv", fmt(Math.ceil(pv / 50) * 50, 0) + ' <span class="u">W</span>');
+    out("cc", fmt(Math.ceil(pv / volt * 1.25), 0) + ' <span class="u">A</span>');
+    out("peak", fmt(peak, 0) + ' <span class="u">W running</span>');
+  });
+  render();
+})();
+</script>
+{% endblock %}

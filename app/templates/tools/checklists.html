@@ -1,0 +1,99 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<div class="tool-panel" style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center">
+    <span class="label">Checklist</span>
+    <div id="tabs" class="chips"></div>
+    <span class="hint" style="margin-left:auto">Shared: everyone on this server sees the same check-offs.</span>
+</div>
+<div class="tool-panel">
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <h2 id="list-title" style="margin:0">-</h2>
+        <span class="mono" id="progress" style="color:var(--accent)"></span>
+        <button class="button small ghost" type="button" id="reset" style="margin-left:auto">Reset</button>
+        <button class="button small ghost" type="button" onclick="window.print()">{{ icon("printer", 14) }} Print</button>
+    </div>
+    <div class="progress-bar"><span id="bar"></span></div>
+    <div id="list"></div>
+</div>
+<style>
+.progress-bar { height: 6px; background: var(--surface-3); border-radius: 3px; margin: 0.8rem 0 1rem; overflow: hidden; }
+.progress-bar span { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+.cl-group h3 { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 400; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 1.2rem 0 0.4rem; }
+.cl-item { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.45rem 0.2rem; border-bottom: 1px solid var(--border); cursor: pointer; }
+.cl-item input { width: 1.15rem; height: 1.15rem; margin-top: 0.2rem; accent-color: var(--accent); flex-shrink: 0; }
+.cl-item.done span { color: var(--muted); text-decoration: line-through; }
+.chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+button.chip { cursor: pointer; font: inherit; font-family: var(--font-mono); font-size: 0.78rem; }
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const { $, store } = ARK;
+  const LISTS = {
+    "go-bag": ["Go-Bag (72-hour)", {
+      "Water": ["3 L water (bottles / bladder)", "Filter (Sawyer / LifeStraw)", "Purification tablets", "Metal bottle or pot for boiling"],
+      "Food": ["3 days of no-cook food (2,000+ kcal/day)", "Spoon / spork", "Electrolyte packets"],
+      "Shelter & warmth": ["Tarp or emergency bivy", "Wool or synthetic layers (no cotton)", "Rain jacket", "Hat & gloves", "Spare socks (2 pairs)", "Mylar blankets ×2"],
+      "Fire & light": ["Lighter ×2", "Ferro rod", "Tinder (cotton balls + petroleum jelly)", "Headlamp + spare batteries", "Chemical light sticks"],
+      "Tools": ["Fixed-blade knife", "Multitool", "50 ft paracord", "Duct tape", "Work gloves", "N95 masks ×2"],
+      "Medical": ["IFAK (see Medical checklist)", "Personal medications (7 days)", "Spare glasses / contacts"],
+      "Nav & comms": ["Paper maps of your area", "Compass", "Radio (FRS/GMRS or ham HT)", "Whistle", "Signal mirror", "Notebook + pencil", "Written contact list & rally points"],
+      "Docs & money": ["Cash in small bills", "Copies of ID, deeds, insurance (waterproof bag)", "USB drive with scanned documents"],
+    }],
+    "medical": ["Medical / IFAK", {
+      "Bleeding": ["Tourniquet ×2 (CAT or SOF-T)", "Hemostatic gauze (QuikClot / Celox)", "Compressed gauze ×2", "Israeli pressure bandage ×2", "Trauma shears", "Permanent marker (TQ time)"],
+      "Airway & chest": ["Nasopharyngeal airway (28 Fr) + lube", "Vented chest seals ×2", "CPR face shield"],
+      "Wound care": ["Nitrile gloves (several pairs)", "Adhesive bandages assorted", "Butterfly closures / Steri-Strips", "Non-stick pads", "Roller gauze", "Medical tape", "Irrigation syringe", "Antibiotic ointment", "Moleskin"],
+      "Orthopedic": ["SAM splint", "Elastic (ACE) bandage", "Triangular bandage ×2"],
+      "Meds (OTC)": ["Ibuprofen", "Acetaminophen", "Diphenhydramine (Benadryl)", "Loperamide (Imodium)", "Oral rehydration salts", "Aspirin (chewable, for heart attack)", "Hydrocortisone cream"],
+      "Other": ["Tweezers", "Thermometer", "Emergency blanket", "Pulse oximeter", "First aid manual (printed)"],
+    }],
+    "vehicle": ["Vehicle Kit", {
+      "Recovery": ["Jumper cables or lithium jump pack", "Tire inflator / 12 V compressor", "Tire plug kit", "Tow strap", "Folding shovel", "Traction aids / kitty litter"],
+      "Tools": ["Basic socket & screwdriver set", "Duct tape & zip ties", "Flashlight + batteries", "Work gloves", "Fuses (assorted)", "Seatbelt cutter / window breaker"],
+      "Survival": ["Water (1 gal)", "Food bars", "Wool blanket / sleeping bag (winter)", "Rain poncho", "First aid kit", "Fire extinguisher", "Road flares / triangles"],
+      "Nav & comms": ["Paper road atlas", "Phone charger + cable", "CB or GMRS radio", "Cash"],
+    }],
+    "comms": ["Comms Kit", {
+      "Radios": ["Handheld radio(s) charged", "Spare battery packs", "AA battery adapter for HT", "Programmed frequency list (printed)", "NOAA weather radio (crank/solar)", "AM/FM/shortwave receiver"],
+      "Antennas": ["Upgraded HT antenna (e.g. 771)", "Roll-up J-pole or slim-jim", "Coax + adapters (SMA, BNC, SO-239)", "Throw line for wire antennas"],
+      "Power": ["Solar panel (20–100 W)", "USB power bank", "Anderson Powerpole / 12 V cables", "Battery (LiFePO4)"],
+      "Paperwork": ["PACE plan written down", "Call signs & check-in schedule", "Logbook + pencils", "Phonetic alphabet & prowords card"],
+      "EMP": ["Spare radio in Faraday container", "Spare cables & charger in Faraday container"],
+    }],
+    "grid-down": ["Grid-Down: First 24 Hours", {
+      "First hour": ["Account for everyone, check for injuries", "Check for fire, gas leaks (smell), structural damage", "Shut off gas if leak suspected (and only then)", "Unplug sensitive electronics", "Note the time; try a battery radio for news"],
+      "Water & food": ["Fill bathtubs, pots and jugs while pressure lasts", "Shut main water valve if contamination is possible", "Keep fridge/freezer closed (fridge ~4 hrs, freezer ~48 hrs)", "Eat perishables first"],
+      "Power & heat": ["Start generator OUTSIDE, 20+ ft away", "CO alarm with battery inside", "Consolidate family into one room for heat/cooling", "Inventory fuel, batteries, propane"],
+      "Security & comms": ["Make contact with family via PACE plan", "Check on neighbors (elderly, medical needs)", "Lock up, keep lights low after dark", "Start a log of events (Logbook tool)"],
+    }],
+  };
+  let state = {}, cur = store.get("cl:cur", "go-bag");
+  const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+  async function load() { try { state = await (await fetch("/api/state/checklists")).json(); } catch (e) { state = {}; } render(); }
+  const save = () => fetch("/api/state/checklists", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(state) });
+  function render() {
+    $("#tabs").innerHTML = Object.entries(LISTS).map(([k, [t]]) => `<button type="button" class="chip ${k === cur ? "on" : ""}" data-k="${k}">${t}</button>`).join("");
+    const [title, groups] = LISTS[cur];
+    const done = state[cur] || {};
+    let n = 0, d = 0;
+    $("#list-title").textContent = title;
+    $("#list").innerHTML = Object.entries(groups).map(([g, items]) => `<div class="cl-group"><h3>${g}</h3>` + items.map(it => {
+      const id = slug(g + "-" + it); n++; if (done[id]) d++;
+      return `<label class="cl-item ${done[id] ? "done" : ""}"><input type="checkbox" data-id="${id}" ${done[id] ? "checked" : ""}><span>${it}</span></label>`;
+    }).join("") + "</div>").join("");
+    $("#progress").textContent = `${d} / ${n}`;
+    $("#bar").style.width = (n ? d / n * 100 : 0) + "%";
+  }
+  $("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (b) { cur = b.dataset.k; store.set("cl:cur", cur); render(); } });
+  $("#list").addEventListener("change", e => { const id = e.target.dataset.id; state[cur] = state[cur] || {}; if (e.target.checked) state[cur][id] = 1; else delete state[cur][id]; save(); render(); });
+  $("#reset").addEventListener("click", e => {
+    const b = e.currentTarget;
+    if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Really reset?"; setTimeout(() => { b.dataset.confirm = ""; b.textContent = "Reset"; }, 3000); return; }
+    state[cur] = {}; save(); render(); b.dataset.confirm = ""; b.textContent = "Reset";
+  });
+  load();
+})();
+</script>
+{% endblock %}

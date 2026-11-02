@@ -1,0 +1,11 @@
+[Unit]
+Description=Kiwix offline library (Wikipedia, iFixit, WikEM, StackExchange…)
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/kiwix-serve --address=127.0.0.1 --port=8082 --urlRootLocation=/kiwix --library /opt/kiwix/library.xml --monitorLibrary
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target

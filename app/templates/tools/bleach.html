@@ -1,0 +1,59 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="f">
+    <h2>Disinfect water with household bleach</h2>
+    <div class="form-row">
+        <div class="field"><label>Amount of water</label><input type="number" name="vol" value="5" min="0" step="any"></div>
+        <div class="field"><label>Unit</label>
+            <select name="unit"><option value="gal">Gallons</option><option value="qt">Quarts</option><option value="L">Liters</option></select>
+        </div>
+        <div class="field"><label>Bleach strength (sodium hypochlorite)</label>
+            <select name="pct"><option value="6">6% (most regular bleach)</option><option value="8.25">8.25% (concentrated)</option><option value="5.25">5.25% (older bottles)</option></select>
+        </div>
+        <div class="field"><label>Water clarity</label>
+            <select name="cloudy"><option value="1">Clear</option><option value="2">Cloudy, colored or very cold</option></select>
+        </div>
+    </div>
+    <div class="readout">
+        <div class="r big"><span class="k">Add</span><span class="v" id="drops">-</span></div>
+        <div class="r"><span class="k">≈ Teaspoons</span><span class="v" id="tsp">-</span></div>
+        <div class="r"><span class="k">≈ Milliliters</span><span class="v" id="ml">-</span></div>
+        <div class="r"><span class="k">Wait</span><span class="v">30 <span class="u">min</span></span></div>
+    </div>
+</form>
+<div class="callout danger">{{ icon("alert", 22) }}<div><strong>Use only plain, unscented bleach</strong><p>No scented, "splash-less", color-safe or cleaner-added bleach. Bleach loses strength over time; bottles older than about a year may be weak. Bleach does <em>not</em> remove chemicals, fuel or heavy metals, and it is weak against <em>Cryptosporidium</em>. Filter or boil when you can.</p></div></div>
+<div class="tool-panel prose">
+    <h2>Procedure (EPA)</h2>
+    <ol>
+        <li>If the water is cloudy, let it settle and filter it through clean cloth, a paper towel or a coffee filter first.</li>
+        <li>Add the bleach dose above and stir or shake well.</li>
+        <li>Let stand <strong>30 minutes</strong>. It should have a slight chlorine smell.</li>
+        <li>No smell? <strong>Repeat the dose</strong> and wait another 15 minutes. If it still doesn't smell of chlorine, discard it and find another source.</li>
+    </ol>
+    <h3>EPA reference table: drops per volume</h3>
+    <table>
+        <thead><tr><th>Water</th><th>6% bleach</th><th>8.25% bleach</th></tr></thead>
+        <tbody>
+            <tr><td>1 quart / 1 liter</td><td>2 drops</td><td>2 drops</td></tr>
+            <tr><td>1 gallon</td><td>8 drops (⅛ tsp)</td><td>6 drops</td></tr>
+            <tr><td>2 gallons</td><td>16 drops (¼ tsp)</td><td>12 drops (⅛ tsp)</td></tr>
+            <tr><td>4 gallons</td><td>⅓ tsp</td><td>¼ tsp</td></tr>
+            <tr><td>8 gallons</td><td>⅔ tsp</td><td>½ tsp</td></tr>
+        </tbody>
+    </table>
+    <p class="hint">Double for cloudy, colored or very cold water. 1 drop ≈ 0.05 mL; 1 tsp ≈ 5 mL ≈ 100 drops.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+ARK.calc("#f", v => {
+  const gal = v.unit === "gal" ? v.vol : v.unit === "qt" ? v.vol / 4 : v.vol / 3.785;
+  // EPA: 8 drops of 6% per clear gallon; scale for strength and clarity.
+  const drops = gal * 8 * (6 / parseFloat(v.pct)) * parseFloat(v.cloudy);
+  const ml = drops * 0.05;
+  ARK.out("drops", (drops < 1 && drops > 0 ? "1" : ARK.fmt(Math.round(drops), 0)) + ' <span class="u">drops</span>');
+  ARK.out("tsp", ARK.fmt(ml / 4.93, 2));
+  ARK.out("ml", ARK.fmt(ml, 1));
+});
+</script>
+{% endblock %}

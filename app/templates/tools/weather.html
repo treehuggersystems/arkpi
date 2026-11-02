@@ -1,0 +1,72 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<form class="tool-panel" id="wc">
+    <h2>Wind chill &amp; frostbite</h2>
+    <div class="form-row">
+        <div class="field"><label>Air temperature (°F)</label><input type="number" name="t" value="10" step="any"></div>
+        <div class="field"><label>Wind speed (mph)</label><input type="number" name="v" value="20" step="any"></div>
+    </div>
+    <div class="readout">
+        <div class="r big"><span class="k">Feels like</span><span class="v" id="wc-out">-</span></div>
+        <div class="r"><span class="k">Frostbite risk</span><span class="v" id="fb">-</span></div>
+    </div>
+    <p class="hint">NWS formula, valid at ≤ 50 °F and wind ≥ 3 mph. Wet clothing and skin make it far worse.</p>
+</form>
+
+<form class="tool-panel" id="hi">
+    <h2>Heat index</h2>
+    <div class="form-row">
+        <div class="field"><label>Air temperature (°F)</label><input type="number" name="t" value="92" step="any"></div>
+        <div class="field"><label>Relative humidity (%)</label><input type="number" name="rh" value="60" step="any"></div>
+    </div>
+    <div class="readout">
+        <div class="r big"><span class="k">Heat index</span><span class="v" id="hi-out">-</span></div>
+        <div class="r"><span class="k">Danger level</span><span class="v" id="hi-lvl">-</span></div>
+        <div class="r"><span class="k">Dew point</span><span class="v" id="dp">-</span></div>
+    </div>
+    <p class="hint">In direct sun, heat index can be up to 15 °F higher. Heat stroke is a medical emergency: <a href="/medical/heat_illness">see Heat Illness</a>.</p>
+</form>
+
+<div class="tool-panel prose">
+    <h2>Reading the sky (no forecast available)</h2>
+    <table>
+        <thead><tr><th>Sign</th><th>Likely meaning</th></tr></thead>
+        <tbody>
+            <tr><td>Barometer falling fast (&gt; 0.06 inHg / 3 hrs)</td><td>Storm approaching within 12–24 hrs</td></tr>
+            <tr><td>Barometer rising steadily</td><td>Clearing, fair weather</td></tr>
+            <tr><td>Cirrus "mares' tails" thickening to cirrostratus (halo round sun/moon)</td><td>Warm front; rain or snow within 24–36 hrs</td></tr>
+            <tr><td>Towering cumulus building by early afternoon</td><td>Thunderstorms later in the day</td></tr>
+            <tr><td>Red sky at evening (west clear)</td><td>Fair weather moving in</td></tr>
+            <tr><td>Red sky at morning</td><td>Moisture moving in from the west</td></tr>
+            <tr><td>Wind backing (shifting counter-clockwise)</td><td>Deteriorating weather</td></tr>
+            <tr><td>Heavy dew or frost at dawn</td><td>Clear, calm night; fair day likely</td></tr>
+            <tr><td>Green-tinted sky, sudden calm, hail</td><td><strong>Tornado risk: take shelter</strong></td></tr>
+        </tbody>
+    </table>
+    <p class="hint">Count seconds from lightning flash to thunder ÷ 5 = miles away. Under 30 seconds (6 mi): go inside. Wait 30 min after the last thunder.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+ARK.calc("#wc", v => {
+  if (v.t > 50 || v.v < 3) { ARK.out("wc-out", ARK.fmt(v.t, 0) + ' <span class="u">°F (no wind chill)</span>'); ARK.out("fb", '<span class="level ok">Low</span>'); return; }
+  const s = Math.pow(v.v, 0.16), wc = 35.74 + 0.6215 * v.t - 35.75 * s + 0.4275 * v.t * s;
+  ARK.out("wc-out", ARK.fmt(wc, 0) + ' <span class="u">°F</span>');
+  ARK.out("fb", wc <= -48 ? '<span class="level danger">Frostbite in ≤ 5 min</span>' : wc <= -32 ? '<span class="level danger">Frostbite in ≤ 10 min</span>' : wc <= -18 ? '<span class="level warn">Frostbite in ≤ 30 min</span>' : '<span class="level ok">Low</span>');
+});
+ARK.calc("#hi", v => {
+  const T = v.t, R = v.rh;
+  let hi = 0.5 * (T + 61 + (T - 68) * 1.2 + R * 0.094);
+  if ((hi + T) / 2 >= 80) {
+    hi = -42.379 + 2.04901523 * T + 10.14333127 * R - 0.22475541 * T * R - 0.00683783 * T * T - 0.05481717 * R * R + 0.00122874 * T * T * R + 0.00085282 * T * R * R - 0.00000199 * T * T * R * R;
+    if (R < 13 && T >= 80 && T <= 112) hi -= ((13 - R) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
+    else if (R > 85 && T >= 80 && T <= 87) hi += ((R - 85) / 10) * ((87 - T) / 5);
+  }
+  ARK.out("hi-out", ARK.fmt(hi, 0) + ' <span class="u">°F</span>');
+  ARK.out("hi-lvl", hi >= 125 ? '<span class="level danger">Extreme danger</span>' : hi >= 103 ? '<span class="level danger">Danger</span>' : hi >= 90 ? '<span class="level warn">Extreme caution</span>' : hi >= 80 ? '<span class="level warn">Caution</span>' : '<span class="level ok">OK</span>');
+  const Tc = (T - 32) * 5 / 9, a = 17.27, b = 237.7, g = a * Tc / (b + Tc) + Math.log(Math.max(R, 1) / 100);
+  const dp = b * g / (a - g);
+  ARK.out("dp", ARK.fmt(dp * 9 / 5 + 32, 0) + ' <span class="u">°F</span>');
+});
+</script>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Offline{% endblock %}
+
+{% block content %}
+<div class="page-head" style="text-align:center;padding:3rem 0 1rem">
+    <div class="eyebrow" style="justify-content:center">No connection to the ARK·π server</div>
+    <h1>You're offline</h1>
+    <p class="lede" style="margin:0 auto 1.5rem">This page wasn't saved on this device yet. Everything below is available offline.</p>
+    <div class="actions" style="justify-content:center">
+        <a class="button" href="/critical">{{ icon("alert", 16) }} Critical info</a>
+        <a class="button ghost" href="/tools">{{ icon("tools", 16) }} Tools</a>
+        <a class="button ghost" href="/">{{ icon("home", 16) }} Home</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,569 @@
+{
+ "_about": "Curated public-domain books (Project Gutenberg), audiobooks (LibriVox) and films (Internet Archive) for ARK·π. Fetched by scripts/fetch-media.py into /opt/offline-data/media/.",
+ "books": [
+  {
+   "id": 131,
+   "shelf": "Faith",
+   "title": "The Pilgrim's Progress",
+   "author": "John Bunyan"
+  },
+  {
+   "id": 395,
+   "shelf": "Faith",
+   "title": "The Holy War",
+   "author": "John Bunyan"
+  },
+  {
+   "id": 654,
+   "shelf": "Faith",
+   "title": "Grace Abounding to the Chief of Sinners",
+   "author": "John Bunyan"
+  },
+  {
+   "id": 1653,
+   "shelf": "Faith",
+   "title": "The Imitation of Christ",
+   "author": "Thomas à Kempis"
+  },
+  {
+   "id": 5657,
+   "shelf": "Faith",
+   "title": "The Practice of the Presence of God",
+   "author": "Brother Lawrence"
+  },
+  {
+   "id": 22400,
+   "shelf": "Faith",
+   "title": "Foxe's Book of Martyrs",
+   "author": "John Foxe"
+  },
+  {
+   "id": 4540,
+   "shelf": "Faith",
+   "title": "In His Steps",
+   "author": "Charles M. Sheldon"
+  },
+  {
+   "id": 130,
+   "shelf": "Faith",
+   "title": "Orthodoxy",
+   "author": "G. K. Chesterton"
+  },
+  {
+   "id": 2145,
+   "shelf": "Faith",
+   "title": "Ben-Hur: A Tale of the Christ",
+   "author": "Lew Wallace"
+  },
+  {
+   "id": 120,
+   "shelf": "Adventure",
+   "title": "Treasure Island",
+   "author": "Robert Louis Stevenson"
+  },
+  {
+   "id": 421,
+   "shelf": "Adventure",
+   "title": "Kidnapped",
+   "author": "Robert Louis Stevenson"
+  },
+  {
+   "id": 521,
+   "shelf": "Adventure",
+   "title": "Robinson Crusoe",
+   "author": "Daniel Defoe"
+  },
+  {
+   "id": 3836,
+   "shelf": "Adventure",
+   "title": "The Swiss Family Robinson",
+   "author": "Johann David Wyss"
+  },
+  {
+   "id": 1268,
+   "shelf": "Adventure",
+   "title": "The Mysterious Island",
+   "author": "Jules Verne"
+  },
+  {
+   "id": 164,
+   "shelf": "Adventure",
+   "title": "Twenty Thousand Leagues under the Sea",
+   "author": "Jules Verne"
+  },
+  {
+   "id": 103,
+   "shelf": "Adventure",
+   "title": "Around the World in Eighty Days",
+   "author": "Jules Verne"
+  },
+  {
+   "id": 1184,
+   "shelf": "Adventure",
+   "title": "The Count of Monte Cristo",
+   "author": "Alexandre Dumas"
+  },
+  {
+   "id": 1257,
+   "shelf": "Adventure",
+   "title": "The Three Musketeers",
+   "author": "Alexandre Dumas"
+  },
+  {
+   "id": 940,
+   "shelf": "Adventure",
+   "title": "The Last of the Mohicans",
+   "author": "James Fenimore Cooper"
+  },
+  {
+   "id": 215,
+   "shelf": "Adventure",
+   "title": "The Call of the Wild",
+   "author": "Jack London"
+  },
+  {
+   "id": 910,
+   "shelf": "Adventure",
+   "title": "White Fang",
+   "author": "Jack London"
+  },
+  {
+   "id": 82,
+   "shelf": "Adventure",
+   "title": "Ivanhoe",
+   "author": "Walter Scott"
+  },
+  {
+   "id": 2701,
+   "shelf": "Adventure",
+   "title": "Moby Dick",
+   "author": "Herman Melville"
+  },
+  {
+   "id": 1661,
+   "shelf": "Classics",
+   "title": "The Adventures of Sherlock Holmes",
+   "author": "Arthur Conan Doyle"
+  },
+  {
+   "id": 2852,
+   "shelf": "Classics",
+   "title": "The Hound of the Baskervilles",
+   "author": "Arthur Conan Doyle"
+  },
+  {
+   "id": 74,
+   "shelf": "Classics",
+   "title": "The Adventures of Tom Sawyer",
+   "author": "Mark Twain"
+  },
+  {
+   "id": 76,
+   "shelf": "Classics",
+   "title": "Adventures of Huckleberry Finn",
+   "author": "Mark Twain"
+  },
+  {
+   "id": 1342,
+   "shelf": "Classics",
+   "title": "Pride and Prejudice",
+   "author": "Jane Austen"
+  },
+  {
+   "id": 98,
+   "shelf": "Classics",
+   "title": "A Tale of Two Cities",
+   "author": "Charles Dickens"
+  },
+  {
+   "id": 1400,
+   "shelf": "Classics",
+   "title": "Great Expectations",
+   "author": "Charles Dickens"
+  },
+  {
+   "id": 46,
+   "shelf": "Classics",
+   "title": "A Christmas Carol",
+   "author": "Charles Dickens"
+  },
+  {
+   "id": 514,
+   "shelf": "Classics",
+   "title": "Little Women",
+   "author": "Louisa May Alcott"
+  },
+  {
+   "id": 84,
+   "shelf": "Classics",
+   "title": "Frankenstein",
+   "author": "Mary Shelley"
+  },
+  {
+   "id": 35,
+   "shelf": "Classics",
+   "title": "The Time Machine",
+   "author": "H. G. Wells"
+  },
+  {
+   "id": 36,
+   "shelf": "Classics",
+   "title": "The War of the Worlds",
+   "author": "H. G. Wells"
+  },
+  {
+   "id": 11,
+   "shelf": "Kids",
+   "title": "Alice's Adventures in Wonderland",
+   "author": "Lewis Carroll"
+  },
+  {
+   "id": 55,
+   "shelf": "Kids",
+   "title": "The Wonderful Wizard of Oz",
+   "author": "L. Frank Baum"
+  },
+  {
+   "id": 16,
+   "shelf": "Kids",
+   "title": "Peter Pan",
+   "author": "J. M. Barrie"
+  },
+  {
+   "id": 236,
+   "shelf": "Kids",
+   "title": "The Jungle Book",
+   "author": "Rudyard Kipling"
+  },
+  {
+   "id": 289,
+   "shelf": "Kids",
+   "title": "The Wind in the Willows",
+   "author": "Kenneth Grahame"
+  },
+  {
+   "id": 45,
+   "shelf": "Kids",
+   "title": "Anne of Green Gables",
+   "author": "L. M. Montgomery"
+  },
+  {
+   "id": 1448,
+   "shelf": "Kids",
+   "title": "Heidi",
+   "author": "Johanna Spyri"
+  },
+  {
+   "id": 271,
+   "shelf": "Kids",
+   "title": "Black Beauty",
+   "author": "Anna Sewell"
+  },
+  {
+   "id": 113,
+   "shelf": "Kids",
+   "title": "The Secret Garden",
+   "author": "Frances Hodgson Burnett"
+  },
+  {
+   "id": 708,
+   "shelf": "Kids",
+   "title": "The Princess and the Goblin",
+   "author": "George MacDonald"
+  },
+  {
+   "id": 764,
+   "shelf": "Kids",
+   "title": "Hans Brinker; or, The Silver Skates",
+   "author": "Mary Mapes Dodge"
+  },
+  {
+   "id": 500,
+   "shelf": "Kids",
+   "title": "The Adventures of Pinocchio",
+   "author": "Carlo Collodi"
+  },
+  {
+   "id": 11339,
+   "shelf": "Kids",
+   "title": "Aesop's Fables",
+   "author": "Aesop"
+  },
+  {
+   "id": 2591,
+   "shelf": "Kids",
+   "title": "Grimms' Fairy Tales",
+   "author": "Brothers Grimm"
+  },
+  {
+   "id": 17093,
+   "shelf": "Skills",
+   "title": "Camp Life in the Woods and the Tricks of Trapping",
+   "author": "W. Hamilton Gibson"
+  },
+  {
+   "id": 28255,
+   "shelf": "Skills",
+   "title": "Shelters, Shacks and Shanties",
+   "author": "D. C. Beard"
+  },
+  {
+   "id": 29558,
+   "shelf": "Skills",
+   "title": "Boy Scouts Handbook (1911)",
+   "author": "Boy Scouts of America"
+  },
+  {
+   "id": 13493,
+   "shelf": "Skills",
+   "title": "The American Frugal Housewife",
+   "author": "Lydia Maria Child"
+  },
+  {
+   "id": 205,
+   "shelf": "Skills",
+   "title": "Walden",
+   "author": "Henry David Thoreau"
+  },
+  {
+   "id": 148,
+   "shelf": "History",
+   "title": "The Autobiography of Benjamin Franklin",
+   "author": "Benjamin Franklin"
+  },
+  {
+   "id": 2376,
+   "shelf": "History",
+   "title": "Up from Slavery",
+   "author": "Booker T. Washington"
+  },
+  {
+   "id": 18,
+   "shelf": "History",
+   "title": "The Federalist Papers",
+   "author": "Hamilton, Madison, Jay"
+  },
+  {
+   "id": 147,
+   "shelf": "History",
+   "title": "Common Sense",
+   "author": "Thomas Paine"
+  },
+  {
+   "id": 1,
+   "shelf": "History",
+   "title": "The Declaration of Independence",
+   "author": "Thomas Jefferson"
+  },
+  {
+   "id": 5,
+   "shelf": "History",
+   "title": "The United States Constitution",
+   "author": ""
+  },
+  {
+   "id": 132,
+   "shelf": "History",
+   "title": "The Art of War",
+   "author": "Sun Tzu"
+  }
+ ],
+ "audio": [
+  {
+   "ia": "psalms_kjv_1202_librivox",
+   "shelf": "Faith",
+   "title": "The Book of Psalms (KJV)",
+   "author": "LibriVox volunteers"
+  },
+  {
+   "ia": "proverbs_kjv_mp_librivox",
+   "shelf": "Faith",
+   "title": "Proverbs (KJV)",
+   "author": "LibriVox volunteers"
+  },
+  {
+   "ia": "matthew_kjv_mp_librivox",
+   "shelf": "Faith",
+   "title": "Gospel of Matthew (KJV)",
+   "author": "LibriVox volunteers"
+  },
+  {
+   "ia": "mark_kjv_sw_librivox",
+   "shelf": "Faith",
+   "title": "Gospel of Mark (KJV)",
+   "author": "LibriVox volunteers"
+  },
+  {
+   "ia": "bible_kjv_nt_03_luke_0812_librivox",
+   "shelf": "Faith",
+   "title": "Gospel of Luke (KJV)",
+   "author": "LibriVox volunteers"
+  },
+  {
+   "ia": "biblent04_john_kjv_librivox",
+   "shelf": "Faith",
+   "title": "Gospel of John (KJV)",
+   "author": "LibriVox volunteers"
+  },
+  {
+   "ia": "acts_kjv_v2_1401_librivox",
+   "shelf": "Faith",
+   "title": "Acts (KJV)",
+   "author": "LibriVox volunteers"
+  },
+  {
+   "ia": "romans_kjv_1103_librivox",
+   "shelf": "Faith",
+   "title": "Romans (KJV)",
+   "author": "LibriVox volunteers"
+  },
+  {
+   "ia": "pilgrims_progress_librivox",
+   "shelf": "Faith",
+   "title": "The Pilgrim's Progress",
+   "author": "John Bunyan"
+  },
+  {
+   "ia": "treasure_island_ap_librivox",
+   "shelf": "Adventure",
+   "title": "Treasure Island",
+   "author": "Robert Louis Stevenson"
+  },
+  {
+   "ia": "swiss_family_robinson_librivox",
+   "shelf": "Adventure",
+   "title": "The Swiss Family Robinson",
+   "author": "Johann David Wyss"
+  },
+  {
+   "ia": "tom_sawyer_librivox",
+   "shelf": "Classics",
+   "title": "The Adventures of Tom Sawyer",
+   "author": "Mark Twain"
+  },
+  {
+   "ia": "christmascarol_librivox",
+   "shelf": "Classics",
+   "title": "A Christmas Carol",
+   "author": "Charles Dickens"
+  },
+  {
+   "ia": "wind_in_the_willows_collab_librivox",
+   "shelf": "Kids",
+   "title": "The Wind in the Willows",
+   "author": "Kenneth Grahame"
+  },
+  {
+   "ia": "aesopforchildren_1308_librivox",
+   "shelf": "Kids",
+   "title": "The Aesop for Children",
+   "author": "Aesop"
+  },
+  {
+   "ia": "wizard_of_oz",
+   "shelf": "Kids",
+   "title": "The Wonderful Wizard of Oz",
+   "author": "L. Frank Baum"
+  }
+ ],
+ "video": [
+  {
+   "ia": "TheKingOfKings1927ByCecilB.DeMille",
+   "file": "The King of Kings 1927 by Cecil B. DeMille.mp4",
+   "shelf": "Faith",
+   "title": "The King of Kings (1927)",
+   "note": "Cecil B. DeMille's silent life of Christ"
+  },
+  {
+   "ia": "silent-ben-hur-a-tale-of-the-christ-1925",
+   "file": "Ben Hur, A Tale Of The Christ (1925).mp4",
+   "shelf": "Faith",
+   "title": "Ben-Hur: A Tale of the Christ (1925)",
+   "note": "Silent epic"
+  },
+  {
+   "ia": "The_General_Buster_Keaton",
+   "file": "The_General.mp4",
+   "shelf": "Silent comedy",
+   "title": "The General (1926)",
+   "note": "Buster Keaton"
+  },
+  {
+   "ia": "sherlockjr1924_201909",
+   "file": "Sherlock Jr. - Buster Keaton (1924) HD [720p].mp4",
+   "shelf": "Silent comedy",
+   "title": "Sherlock Jr. (1924)",
+   "note": "Buster Keaton"
+  },
+  {
+   "ia": "his_girl_friday",
+   "file": "his_girl_friday.mp4",
+   "shelf": "Movies",
+   "title": "His Girl Friday (1940)",
+   "note": "Cary Grant, Rosalind Russell"
+  },
+  {
+   "ia": "meet_john_doe",
+   "file": "meet_john_doe.mp4",
+   "shelf": "Movies",
+   "title": "Meet John Doe (1941)",
+   "note": "Gary Cooper, Barbara Stanwyck · Frank Capra"
+  },
+  {
+   "ia": "mclintok_widescreen",
+   "file": "McLintock_512kb.mp4",
+   "shelf": "Movies",
+   "title": "McLintock! (1963)",
+   "note": "John Wayne, Maureen O'Hara"
+  },
+  {
+   "ia": "angel_and_the_badman",
+   "file": "angel_and_the_badman.mp4",
+   "shelf": "Movies",
+   "title": "Angel and the Badman (1947)",
+   "note": "John Wayne"
+  },
+  {
+   "ia": "gullivers_travels1939",
+   "file": "gullivers_travels1939.mp4",
+   "shelf": "Cartoons",
+   "title": "Gulliver's Travels (1939)",
+   "note": "Fleischer Studios animated feature"
+  },
+  {
+   "ia": "superman_1941",
+   "file": "superman_1941_512kb.mp4",
+   "shelf": "Cartoons",
+   "title": "Superman (1941)",
+   "note": "Fleischer Studios"
+  },
+  {
+   "ia": "superman_the_mechanical_monsters",
+   "file": "superman_the_mechanical_monsters_512kb.mp4",
+   "shelf": "Cartoons",
+   "title": "Superman: The Mechanical Monsters (1941)",
+   "note": "Fleischer Studios"
+  },
+  {
+   "ia": "superman_electric_earthquake",
+   "file": "superman_electric_earthquake_512kb.mp4",
+   "shelf": "Cartoons",
+   "title": "Superman: Electric Earthquake (1942)",
+   "note": "Fleischer Studios"
+  },
+  {
+   "ia": "POPEYEMeetsSindbadTheSailor1936",
+   "file": "POPEYE meets Sindbad The Sailor (1936).mp4",
+   "shelf": "Cartoons",
+   "title": "Popeye the Sailor Meets Sindbad the Sailor (1936)",
+   "note": "Fleischer Studios, Technicolor"
+  },
+  {
+   "ia": "disorder_in_the_court",
+   "file": "disorder_in_the_court.mp4",
+   "shelf": "Comedy",
+   "title": "Disorder in the Court (1936)",
+   "note": "The Three Stooges"
+  }
+ ]
+}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ cat.label }}{% endblock %}
+
+{% block content %}
+<div class="crumbs"><a href="/">Home</a> / <span>{{ cat.label }}</span></div>
+
+<div class="page-head">
+    <div class="eyebrow">{{ "%02d" | format(cat.count) }} entries</div>
+    <h1>{{ cat.label }}</h1>
+    {% if cat.blurb %}<p class="lede">{{ cat.blurb }}</p>{% endif %}
+    <div class="actions">
+        <a class="button ghost small" href="/{{ cat.name }}/new">{{ icon("plus", 16) }} Add entry</a>
+        <input type="search" class="filter-input" placeholder="Filter this list…" data-filter=".list .row-link" style="max-width:260px;padding:0.35rem 0.7rem">
+    </div>
+</div>
+
+{% if votd %}
+<div class="grid cols-2" style="margin-bottom:1.5rem">
+    <a class="votd" href="{{ votd.url }}">
+        <span class="eyebrow">Verse of the day</span>
+        <span class="votd-text">{{ votd.text }}</span>
+        <span class="votd-ref">{{ votd.label }} · {{ votd.short }}</span>
+    </a>
+    <div class="list">
+        <a class="row-link" href="/bible"><span class="row-ico">{{ icon("bible") }}</span><span class="row-main"><span class="row-title">Holy Bible</span><span class="row-sub">ESV · BSB · KJV · WEB. Search, compare, Bible-in-a-year</span></span></a>
+        <a class="row-link" href="/devotional"><span class="row-ico">{{ icon("sun") }}</span><span class="row-main"><span class="row-title">Morning &amp; Evening</span><span class="row-sub">Spurgeon's daily devotional, all 366 days</span></span></a>
+        <a class="row-link" href="/media?kind=book"><span class="row-ico">{{ icon("book") }}</span><span class="row-main"><span class="row-title">Christian classics</span><span class="row-sub">Pilgrim's Progress, Foxe's Martyrs, Imitation of Christ…</span></span></a>
+    </div>
+</div>
+{% endif %}
+<div class="list">
+    {% for d in items %}
+    <a class="row-link {% if d.critical %}critical{% endif %}" href="/{{ d.category }}/{{ d.name }}">
+        <span class="row-ico">{{ icon(d.critical and 'alert' or cat.icon) }}</span>
+        <span class="row-main">
+            <span class="row-title">{{ d.title }}</span>
+            <span class="row-sub">{{ d.summary or d.tags | join(" · ") }}</span>
+        </span>
+        <span class="row-meta">{{ icon("arrow-right", 16) }}</span>
+    </a>
+    {% else %}
+    <div class="card">Nothing here yet. <a href="/{{ cat.name }}/new">Add the first entry.</a></div>
+    {% endfor %}
+</div>
+{% endblock %}

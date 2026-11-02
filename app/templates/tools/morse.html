@@ -1,0 +1,82 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<div class="tool-panel">
+    <h2>Text ⇄ Morse</h2>
+    <div class="field"><label>Text</label><input type="text" id="txt" value="SOS" autocomplete="off"></div>
+    <div class="field"><label>Morse (use . and -, spaces between letters, / between words)</label><input type="text" id="mor" class="mono" autocomplete="off"></div>
+    <div class="morse-out" id="vis"></div>
+    <div class="form-row" style="margin-top:1rem">
+        <div class="field"><label>Speed (WPM)</label><input type="number" id="wpm" value="15" min="5" max="40"></div>
+        <div class="field"><label>Tone (Hz)</label><input type="number" id="hz" value="650" min="300" max="1200" step="10"></div>
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="button" type="button" id="play">▶ Play audio</button>
+        <button class="button ghost" type="button" id="flash-btn">☀ Flash screen (signal lamp)</button>
+        <button class="button ghost" type="button" id="stop">■ Stop</button>
+        <button class="button danger" type="button" id="sos">SOS loop</button>
+    </div>
+    <p class="hint">Flash mode turns the whole screen into a signal light. Point a phone or tablet at the receiver. Tap anywhere to stop.</p>
+</div>
+<div class="tool-panel">
+    <h2>Reference</h2>
+    <div id="chart" class="morse-chart"></div>
+</div>
+<div class="flash" id="flash"></div>
+<style>
+.morse-chart { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.4rem; }
+.morse-chart div { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.6rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.morse-chart b { font-family: var(--font-head); font-size: 1.2rem; }
+.morse-chart span { font-family: var(--font-mono); color: var(--accent); letter-spacing: 0.12em; }
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const $ = ARK.$;
+  const M = { A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.", G: "--.", H: "....", I: "..", J: ".---", K: "-.-", L: ".-..", M: "--", N: "-.", O: "---", P: ".--.", Q: "--.-", R: ".-.", S: "...", T: "-", U: "..-", V: "...-", W: ".--", X: "-..-", Y: "-.--", Z: "--..",
+    0: "-----", 1: ".----", 2: "..---", 3: "...--", 4: "....-", 5: ".....", 6: "-....", 7: "--...", 8: "---..", 9: "----.",
+    ".": ".-.-.-", ",": "--..--", "?": "..--..", "/": "-..-.", "=": "-...-", "+": ".-.-.", "-": "-....-", "@": ".--.-.", "'": ".----.", "(": "-.--.", ")": "-.--.-", ":": "---...", "!": "-.-.--" };
+  const R = Object.fromEntries(Object.entries(M).map(([k, v]) => [v, k]));
+  const toMorse = t => t.toUpperCase().trim().split(/\s+/).map(w => [...w].map(c => M[c] || "").filter(Boolean).join(" ")).join(" / ");
+  const toText = m => m.trim().split(/\s*\/\s*|\s{3,}/).map(w => w.split(/\s+/).map(c => R[c] || (c ? "?" : "")).join("")).join(" ");
+  const vis = m => m.replace(/\./g, "•").replace(/-/g, "—");
+  $("#txt").addEventListener("input", () => { $("#mor").value = toMorse($("#txt").value); $("#vis").textContent = vis($("#mor").value); });
+  $("#mor").addEventListener("input", () => { $("#txt").value = toText($("#mor").value); $("#vis").textContent = vis($("#mor").value); });
+  $("#txt").dispatchEvent(new Event("input"));
+  $("#chart").innerHTML = Object.entries(M).map(([k, v]) => `<div data-c="${k}"><b>${k}</b><span>${vis(v)}</span></div>`).join("");
+
+  // Timing: PARIS standard. dit = 1200 / wpm ms.
+  let ctx, stopFlag = false, running = false;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  async function send(morse, { audio = true, light = false } = {}) {
+    if (running) return; running = true; stopFlag = false;
+    const dit = 1200 / (parseFloat($("#wpm").value) || 15);
+    if (audio) ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const fl = $("#flash");
+    const on = async ms => {
+      let osc;
+      if (audio) { osc = ctx.createOscillator(); const g = ctx.createGain(); g.gain.value = 0.25; osc.frequency.value = parseFloat($("#hz").value) || 650; osc.connect(g); g.connect(ctx.destination); osc.start(); }
+      if (light) fl.style.display = "block";
+      await sleep(ms);
+      if (osc) osc.stop();
+      if (light) fl.style.display = "none";
+    };
+    for (const ch of morse) {
+      if (stopFlag) break;
+      if (ch === ".") { await on(dit); await sleep(dit); }
+      else if (ch === "-") { await on(dit * 3); await sleep(dit); }
+      else if (ch === " ") await sleep(dit * 2);
+      else if (ch === "/") await sleep(dit * 2);
+    }
+    if (light) $("#flash").style.display = "none";
+    running = false;
+  }
+  $("#play").addEventListener("click", () => send($("#mor").value));
+  $("#flash-btn").addEventListener("click", () => send($("#mor").value, { audio: false, light: true }));
+  $("#stop").addEventListener("click", () => { stopFlag = true; });
+  $("#flash").addEventListener("click", () => { stopFlag = true; });
+  $("#sos").addEventListener("click", async () => { for (let i = 0; i < 20 && !stopFlag; i++) { await send("... --- ...", { audio: true, light: false }); await sleep(1200 / 15 * 7); } });
+  $("#chart").addEventListener("click", e => { const d = e.target.closest("[data-c]"); if (d) send(M[d.dataset.c]); });
+})();
+</script>
+{% endblock %}

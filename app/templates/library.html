@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Library{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">Reference</div>
+    <h1>Field Manual Library</h1>
+    <p class="lede">Full-length PDF manuals stored on this server. They open in your browser's built-in PDF viewer.</p>
+</div>
+
+<div class="list">
+    {% for m in manuals %}
+    <a class="row-link" href="/manual/{{ m.file | urlencode }}" target="_blank" rel="noopener">
+        <span class="row-ico">{{ icon("book") }}</span>
+        <span class="row-main">
+            <span class="row-title">{% if m.code %}<span class="mono" style="color:var(--accent)">{{ m.code }}</span> · {% endif %}{{ m.title }}</span>
+            <span class="row-sub">{{ m.kind }} · {{ m.size }} · {{ m.file }}</span>
+        </span>
+        <span class="row-meta">Open {{ icon("arrow-right", 14) }}</span>
+    </a>
+    {% else %}
+    <div class="card">No manuals found in <code>{{ manuals_dir }}</code>.</div>
+    {% endfor %}
+</div>
+<p class="hint" style="margin-top:1rem"><a href="/import">Upload a file from this device</a>, or add more by dropping PDFs into <code>{{ manuals_dir }}</code>. They show up automatically. See <code>docs/RECOMMENDED_DOWNLOADS.md</code> in the repo for a list of manuals worth grabbing.</p>
+
+<div class="section-title" id="wiki"><h2>{{ icon("globe", 18) }} Offline Wikipedia (Kiwix)</h2></div>
+<div class="card">
+    {% if kiwix.up %}
+    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+        <p style="margin:0"><span class="dot on"></span><strong>Kiwix is running</strong> · {{ books | length }} collections</p>
+        <form action="{{ kiwix.url }}search" method="get" style="display:flex;gap:0.5rem;flex:1;min-width:240px">
+            <input type="search" name="pattern" placeholder="Search all offline libraries…">
+            <button class="button small" type="submit">Search</button>
+        </form>
+        <a class="button ghost small" href="{{ kiwix.url }}">Browse all</a>
+    </div>
+    {% else %}
+    <p style="margin-top:0"><span class="dot off"></span><strong>Kiwix server is not running.</strong> Start it with the bundled systemd unit:</p>
+    <pre class="mono" style="overflow-x:auto;background:var(--bg);padding:0.8rem;border-radius:6px;border:1px solid var(--border)">sudo cp deploy/kiwix.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now kiwix</pre>
+    {% endif %}
+</div>
+{% if books %}
+<input type="search" class="filter-input" placeholder="Filter collections…" data-filter="#books .row-link" style="max-width:300px;margin:1rem 0 0.6rem">
+<div class="list" id="books">
+    {% for b in books %}
+    <a class="row-link" href="{{ kiwix.url }}{{ b.href }}" target="_blank" rel="noopener">
+        <span class="row-ico">{{ icon("globe") }}</span>
+        <span class="row-main">
+            <span class="row-title">{{ b.title }}</span>
+            <span class="row-sub">{{ b.summary }}</span>
+        </span>
+        <span class="row-meta">{{ "{:,}".format(b.articles) }} articles</span>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+
+{% block content %}
+<div class="page-head">
+    <div class="eyebrow">Search</div>
+    <h1>{% if query %}“{{ query }}”{% else %}Search{% endif %}</h1>
+    {% if query %}<p class="lede">{{ results | length }} result{{ '' if results | length == 1 else 's' }} in the knowledge base.</p>{% endif %}
+</div>
+
+<div class="list" data-highlight="{{ query }}">
+    {% for r in results %}
+    <a class="row-link {% if r.critical %}critical{% endif %}" href="/{{ r.category }}/{{ r.name }}">
+        <span class="row-ico">{{ icon(r.critical and 'alert' or 'file') }}</span>
+        <span class="row-main">
+            <span class="row-title">{{ r.title }}</span>
+            <span class="row-sub result-snippet">{{ r.snippet }}</span>
+        </span>
+        <span class="row-meta">{{ r.category }}</span>
+    </a>
+    {% endfor %}
+</div>
+
+{% if query and results | length == 0 %}
+<div class="card">No ARK·π articles matched. {% if wiki.results %}See the offline library results below.{% endif %}</div>
+{% endif %}
+
+{% if query and kiwix.up %}
+<div class="section-title">
+    <h2>{{ icon("globe", 18) }} Offline Libraries</h2>
+    <a href="{{ kiwix.url }}search?pattern={{ query | urlencode }}" target="_blank" rel="noopener">All {{ "{:,}".format(wiki.total) }} results →</a>
+</div>
+<p class="hint" style="margin-top:-0.5rem">Wikipedia, WikEM, MDWiki, iFixit, StackExchange, Gutenberg and more.</p>
+<div class="list" data-highlight="{{ query }}">
+    {% for r in wiki.results %}
+    <a class="row-link" href="{{ kiwix.url }}{{ r.href }}" target="_blank" rel="noopener">
+        <span class="row-ico">{{ icon("globe") }}</span>
+        <span class="row-main">
+            <span class="row-title">{{ r.title }}</span>
+            <span class="row-sub result-snippet">{{ r.snippet }}</span>
+        </span>
+        <span class="row-meta">{{ r.book }}</span>
+    </a>
+    {% else %}
+    <div class="card hint">No matches in the offline libraries.</div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

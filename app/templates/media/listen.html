@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }}{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<div class="crumbs"><a href="/media?kind=audio">Audiobooks</a> / <span>{{ item.title }}</span></div>
+<div class="page-head" style="margin-bottom:1rem">
+    <div class="eyebrow">{{ item.shelf }} · LibriVox</div>
+    <h1>{{ item.title }}</h1>
+    <p class="lede">{{ item.author }}</p>
+</div>
+<div class="card" style="position:sticky;top:110px;z-index:5">
+    <div class="mono" id="now" style="color:var(--accent);margin-bottom:0.5rem">-</div>
+    <audio controls preload="none" id="aud" style="width:100%"></audio>
+    <div style="display:flex;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap">
+        <button class="button ghost small" type="button" id="prev">⏮ Prev</button>
+        <button class="button ghost small" type="button" id="back">−30s</button>
+        <button class="button ghost small" type="button" id="fwd">+30s</button>
+        <button class="button ghost small" type="button" id="next">Next ⏭</button>
+        <select id="rate" style="width:auto;padding:0.3rem 0.5rem"><option>0.8</option><option selected>1</option><option>1.25</option><option>1.5</option></select>
+        <select id="sleep" style="width:auto;padding:0.3rem 0.5rem"><option value="0">Sleep timer off</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select>
+    </div>
+</div>
+<div class="list" id="tracks" style="margin-top:1rem">
+    {% for t in item.tracks %}
+    <button class="row-link track" type="button" data-i="{{ loop.index0 }}" data-src="/media/file/{{ item.path }}/{{ t.file | urlencode }}" style="text-align:left;cursor:pointer;font:inherit">
+        <span class="row-meta" style="min-width:2.5rem">{{ "%02d" | format(loop.index) }}</span>
+        <span class="row-main"><span class="row-title">{{ t.title }}</span></span>
+    </button>
+    {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const a = document.getElementById("aud"), tracks = [...document.querySelectorAll(".track")], key = "aud:{{ item.ia }}";
+  let cur = ARK.store.get(key, { i: 0, t: 0 });
+  function load(i, t = 0, play = false) {
+    cur = { i, t }; tracks.forEach((el, j) => el.classList.toggle("playing", j === i));
+    a.src = tracks[i].dataset.src; a.playbackRate = +document.getElementById("rate").value;
+    document.getElementById("now").textContent = `${i + 1} / ${tracks.length} · ${tracks[i].querySelector(".row-title").textContent}`;
+    a.addEventListener("loadedmetadata", function f() { a.currentTime = t; a.removeEventListener("loadedmetadata", f); });
+    if (play) a.play();
+  }
+  if (tracks.length) load(Math.min(cur.i, tracks.length - 1), cur.t);
+  tracks.forEach((el, i) => el.addEventListener("click", () => load(i, 0, true)));
+  a.addEventListener("ended", () => { if (cur.i < tracks.length - 1) load(cur.i + 1, 0, true); });
+  setInterval(() => { if (!a.paused) ARK.store.set(key, { i: cur.i, t: a.currentTime }); }, 5000);
+  document.getElementById("prev").onclick = () => load(Math.max(0, cur.i - 1), 0, true);
+  document.getElementById("next").onclick = () => load(Math.min(tracks.length - 1, cur.i + 1), 0, true);
+  document.getElementById("back").onclick = () => { a.currentTime = Math.max(0, a.currentTime - 30); };
+  document.getElementById("fwd").onclick = () => { a.currentTime += 30; };
+  document.getElementById("rate").onchange = e => { a.playbackRate = +e.target.value; };
+  let sleepT = null;
+  document.getElementById("sleep").onchange = e => { clearTimeout(sleepT); const m = +e.target.value; if (m) sleepT = setTimeout(() => a.pause(), m * 60000); };
+})();
+</script>
+{% endblock %}
