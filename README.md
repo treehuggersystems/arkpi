@@ -30,6 +30,11 @@ git clone https://github.com/treehuggersystems/arkpi.git
 sudo ./arkpi/install.sh
 ```
 
+> **Do the install over Ethernet, not Wi-Fi.** The hotspot takes over the Pi's Wi-Fi radio, so a Wi-Fi connection
+> (including your SSH session) drops the moment it starts. If you must install over Wi-Fi, **disable the hotspot setup**:
+> `sudo ARK_HOTSPOT=no ./arkpi/install.sh`. Later, from Ethernet or a monitor and keyboard, turn it on with
+> `sudo ARK_HOTSPOT=yes /opt/offline-server/install.sh`.
+
 It asks for a Wi-Fi password (or makes one), then installs everything, starts ARK·π on every boot, and creates the **ARK Wi-Fi hotspot**.
 
 **4. Use it.** Join the **ARK** Wi-Fi on a phone and open **http://ark.local:8000**. To install it as an app, open **https://ark.local/install** once.
