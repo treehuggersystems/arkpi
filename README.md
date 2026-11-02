@@ -13,6 +13,29 @@ Built to live two lives:
 - **Grid-down:** on a Raspberry Pi stored in a Faraday container, powered by a
   battery and solar panel, serving every phone and laptop in the house over Wi-Fi.
 
+## Quick start (Raspberry Pi)
+
+1. In **Raspberry Pi Imager** choose a Pi 4/5, **Raspberry Pi OS Lite (64-bit)**, and a 128 GB+ SSD or SD card.
+   Click the settings gear and set a hostname (e.g. `ark`), a username/password, and enable SSH.
+   Connect the Pi by **Ethernet** for the install.
+2. Boot, SSH in (`ssh youruser@ark.local`), then run:
+
+```bash
+sudo apt update && sudo apt install -y git
+git clone https://github.com/treehuggersystems/arkpi.git
+sudo ./arkpi/install.sh
+```
+
+The installer pulls the latest code, installs everything, sets up HTTPS, starts ARK·π on boot,
+and creates the **ARK Wi-Fi hotspot** (it asks for a password, or generates one). Then join that
+Wi-Fi from a phone and open `http://ark.local:8000`.
+
+Customize with environment variables, e.g. `sudo ARK_SSID=MyArk ARK_PASS='a long passphrase' ./arkpi/install.sh`
+(see the top of `install.sh` for all options). **Update any time** by running `sudo /opt/offline-server/install.sh` again.
+
+Optional big downloads (internet needed once): `sudo /opt/offline-server/scripts/fetch-zims.sh` (offline
+Wikipedia & friends, ~21 GB) and `sudo /opt/offline-server/scripts/fetch-maps.sh` (maps, ~2 GB).
+
 ## What's inside
 
 | | |
@@ -92,7 +115,9 @@ summary: One line shown on cards and in lists.
 - `## Ingredients`, `## Equipment` and `## Yield` sections in `content/recipes/`
   render in the recipe sidebar; `### 1. Step` headings become numbered steps.
 
-## Running it
+## Running it manually (development)
+
+On a Pi, `install.sh` (above) does all of this for you.
 
 ```bash
 git clone https://github.com/treehuggersystems/arkpi.git /opt/offline-server && cd /opt/offline-server
