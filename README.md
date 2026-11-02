@@ -15,10 +15,10 @@ Built to live two lives:
 
 ## Quick start (Raspberry Pi) — about 15 minutes
 
-**You need:** a Raspberry Pi 4 or 5 (4 GB+), a 128 GB+ SSD or SD card, a computer to flash it, and Ethernet or internet for the install.
+**You need:** a Raspberry Pi 4 or 5 (4 GB+), a **32 GB+** microSD card (enough for the app and core content; use a bigger SD or an SSD if you add the full Wikipedia and map libraries, ~23 GB more), a computer to flash it, and Ethernet or internet for the install.
 
 **1. Flash the Pi.** In [Raspberry Pi Imager](https://www.raspberrypi.com/software/) pick your Pi, **Raspberry Pi OS Lite (64-bit)**, and
-your drive. Click the ⚙ settings: set hostname `ark`, a username and password, and enable SSH. Write it, put it in the Pi, plug in Ethernet, power on.
+your SD card. Click the ⚙ settings: set hostname `ark`, a username and password, and enable SSH. Write it, put it in the Pi, plug in Ethernet, power on.
 
 **2. Connect.** From your computer: `ssh youruser@ark.local`
 
@@ -230,7 +230,7 @@ it to the Pi separately (it is not in the repo).
 <details>
 <summary><b>Moving an existing server to a Pi (with your data)</b></summary>
 
-1. Raspberry Pi 4/5 (4 GB+), 128 GB+ **SSD** (better than SD for ~30 GB of data), Raspberry Pi OS 64-bit Lite.
+1. Raspberry Pi 4/5 (4 GB+), 32 GB+ SD card (an **SSD** of 128 GB+ is better if you hold the full ~30 GB of libraries), Raspberry Pi OS 64-bit Lite.
 2. `sudo apt install python3-venv nginx kiwix-tools git`
 3. Copy `/opt/offline-server` (including the git-ignored `app/bible/esv.json`), `/opt/kiwix`, `/opt/offline-data` across
    (`rsync -a /opt/{offline-server,kiwix,offline-data} pi@<pi>:/opt/`).
