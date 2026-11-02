@@ -74,6 +74,8 @@ say "Installing services"
 sed "s#/opt/offline-server#$DIR#g" "$DIR/deploy/offline-server.service" > /etc/systemd/system/offline-server.service
 systemctl daemon-reload
 systemctl enable -q offline-server
+# Fail loudly (with the real Python error) instead of leaving a silently crash-looping service.
+(cd "$DIR" && "$DIR/venv/bin/python" -c "import app.main") || die "ARK failed to load; see the error above"
 systemctl restart offline-server
 
 if command -v kiwix-serve >/dev/null; then
