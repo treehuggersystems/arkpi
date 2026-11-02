@@ -4,7 +4,7 @@ __pycache__/
 *.pyc
 
 # Runtime data written by the app (pantry, waypoints, logbook, checklists)
-data/
+/data/
 
 # Large offline data lives outside the repo (see scripts/fetch-*.sh)
 *.zim
