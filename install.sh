@@ -135,7 +135,8 @@ if [[ "$HOTSPOT" != "no" ]]; then
   if ! command -v nmcli >/dev/null || ! nmcli -t -f DEVICE device 2>/dev/null | grep -qx wlan0; then
     warn "no NetworkManager Wi-Fi (wlan0) found; skipping hotspot"
   else
-    ACTIVE="$(nmcli -t -f DEVICE,TYPE,STATE device 2>/dev/null | grep -E '^wlan0:wifi:connected' || true)"
+    # Only treat Wi-Fi as "in use" if it carries the default route (an existing ARK hotspot on wlan0 doesn't count)
+    ACTIVE="$(ip route show default 2>/dev/null | grep -E ' dev wlan0( |$)' || true)"
     if [[ "$HOTSPOT" == "yes" || -z "$ACTIVE" ]]; then
       say "Creating the Wi-Fi hotspot"
       setup_hotspot

@@ -66,7 +66,10 @@ for path in "${ZIMS[@]}"; do
   fi
   echo "↓ $file"
   touch "$DEST/$file.part"
-  if wget -nv -c -O "$DEST/$file" "$MIRROR/$path"; then
+  # Short timeouts so a dead mirror fails fast; if the default attempt fails, retry IPv4-only
+  # (some networks hang on IPv6), still resuming the partial file.
+  WGET=(wget -nv -c --connect-timeout=20 --read-timeout=30 --tries=3 --waitretry=5 -O "$DEST/$file")
+  if "${WGET[@]}" "$MIRROR/$path" || { echo "retrying over IPv4 only"; "${WGET[@]}" -4 "$MIRROR/$path"; }; then
     rm -f "$DEST/$file.part"
   else
     echo "✗ failed: $file (re-run to resume)" >&2
