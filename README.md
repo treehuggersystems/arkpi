@@ -63,6 +63,7 @@ sudo ARK_SSID=MyArk ARK_PASS='a long passphrase' ./arkpi/install.sh
 | `ARK_HOTSPOT` | `auto` | `yes`, `no`, or `auto` (skips the hotspot if the Pi is using its Wi-Fi for its connection, so you can't lock yourself out of SSH) |
 | `ARK_HOSTNAME` | unchanged | Set the Pi's hostname |
 | `ARK_FETCH` | none | Download the big offline libraries during install, comma-separated: `wiki` (Wikipedia, iFixit, medical, how-to; ~21 GB), `maps` (~2 GB), `elevation` (terrain for Point to Point, ~1.8 GB), `addresses` (offline address finder, ~0.5 GB), or `all`. Resumable; skipped automatically if the disk is too full |
+| `ARK_AUTO_DATA` | `yes` | Download the Point to Point terrain + address data (~2.3 GB) on every install/update until it's complete. `no` to skip |
 | `ARK_ELEVATION_RES` | `30` | Terrain detail in metres: `30`, or `90` (about 200 MB for the default region, for small SD cards) |
 | `ARK_REGION_BBOX` / `ARK_REGION_NAME` | Kentucky/Ohio/Indiana | Street-level map region as `west,south,east,north` and its label (pick a box at [boundingbox.klokantech.com](https://boundingbox.klokantech.com), CSV format) |
 | `ARK_DIR` | `/opt/offline-server` | Install location |
@@ -78,6 +79,7 @@ sudo /opt/offline-server/install.sh
 ```
 
 Re-running the installer pulls the newest code, refreshes dependencies and restarts the services. Your data in `data/` is kept.
+It also downloads the Point to Point tool's terrain and address data (~2.3 GB, once) if it isn't there yet; set `ARK_AUTO_DATA=no` to skip that.
 
 </details>
 
@@ -112,7 +114,7 @@ A place can be a street address, town, ZIP code, `lat, lon`, DMS, UTM, an MGRS g
 | Elevation | SRTM 30 m terrain tiles (`fetch-elevation.py`) | Open-Meteo (90 m) |
 | Declination | NOAA World Magnetic Model 2025 (built in, valid to 2030) | n/a |
 
-Install the offline data once with `sudo ARK_FETCH=elevation,addresses /opt/offline-server/install.sh`. Both follow your map region (`ARK_REGION_BBOX`).
+The installer downloads this data automatically (on install and on every update, until it's complete). Both follow your map region (`ARK_REGION_BBOX`).
 Offline addresses are placed along the street block, usually within 20–50 m of the door. Phones away from the ARK still get the distance and azimuth between coordinates.
 
 </details>

@@ -27,6 +27,8 @@
 #                  (default: none; wiki ~21 GB, maps ~2 GB, elevation ~1.8 GB, addresses ~0.5 GB;
 #                  resumable, safe to re-run)
 #   ARK_ELEVATION_RES  30 or 90 (metres) terrain detail     (default: 30; 90 is ~9x smaller)
+#   ARK_AUTO_DATA  yes | no: fetch the Point to Point terrain + address data on every
+#                  install/update until it's complete (default: yes; ~2.3 GB once)
 #   ARK_REGION_BBOX / ARK_REGION_NAME   map region "west,south,east,north" and its label
 #                  (default: Kentucky / Ohio / Indiana; get a box at boundingbox.klokantech.com)
 #
@@ -153,6 +155,21 @@ fi
 # --- 6. offline libraries (optional) ---------------------------------------
 FETCH="${ARK_FETCH:-}"
 [[ "$FETCH" == "all" ]] && FETCH="wiki,maps,elevation,addresses"
+# Point to Point data (terrain + addresses, ~2.3 GB) comes with every install/update until
+# it's complete, so a plain update gets it too. Finished data is skipped quickly.
+# ARK_AUTO_DATA=no (or ARK_FETCH=none) turns this off.
+if [[ "${ARK_AUTO_DATA:-yes}" != "no" && "$FETCH" != "none" ]]; then
+  [[ ",$FETCH," == *",elevation,"* ]] || FETCH+="${FETCH:+,}elevation"
+  ADDR_DB=/opt/offline-data/geocode/addresses.sqlite
+  if ! "$DIR/venv/bin/python" - "$ADDR_DB" 2>/dev/null <<'PY'
+import sqlite3, sys
+con = sqlite3.connect(f"file:{sys.argv[1]}?mode=ro", uri=True)
+sys.exit(0 if con.execute("SELECT value FROM meta WHERE key='built'").fetchone() else 1)
+PY
+  then
+    [[ ",$FETCH," == *",addresses,"* ]] || FETCH+="${FETCH:+,}addresses"
+  fi
+fi
 want() { [[ ",$FETCH," == *",$1,"* ]]; }
 
 free_gb() { df -BG --output=avail "$1" | tail -1 | tr -dc '0-9'; }
