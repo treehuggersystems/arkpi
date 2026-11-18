@@ -1,29 +1,36 @@
 {% extends "tools/_tool.html" %}
 {% block tool %}
-<div class="tool-panel" id="p2p">
-    <h2>Two points</h2>
-    {% for key, label in [("a", "From · A"), ("b", "To · B")] %}
+<div class="tool-panel p2p-points" id="p2p">
+    {% for key, label in [("a", "From"), ("b", "To")] %}
     <div class="p2p-point" data-pt="{{ key }}">
-        <form class="p2p-find" autocomplete="off">
-            <label class="label" for="q-{{ key }}">{{ label }}</label>
-            <div class="p2p-row">
-                <input id="q-{{ key }}" name="q" type="text" placeholder="Address, town, ZIP, lat/lon or MGRS" enterkeyhint="search">
-                <button class="button small" type="submit">{{ icon("search", 15) }} Find</button>
-            </div>
-            <div class="p2p-row p2p-more">
-                <button type="button" class="button small ghost" data-gps>{{ icon("crosshair", 14) }} My location</button>
-                <select data-wp aria-label="Use a saved waypoint"><option value="">Saved waypoint…</option></select>
-            </div>
-        </form>
-        <div class="p2p-picked" hidden></div>
-        <div class="p2p-cands" hidden></div>
+        <div class="p2p-chosen" hidden>
+            <span class="p2p-badge">{{ key|upper }}</span>
+            <div class="p2p-chosen-text"><strong></strong><small></small></div>
+            <button type="button" class="button small ghost" data-change>Change</button>
+        </div>
+        <div class="p2p-edit">
+            <form class="p2p-find" autocomplete="off">
+                <label class="label" for="q-{{ key }}"><span class="p2p-badge">{{ key|upper }}</span> {{ label }}</label>
+                <div class="p2p-row">
+                    <input id="q-{{ key }}" name="q" type="text" placeholder="Address, town, ZIP, lat/lon or MGRS" enterkeyhint="search">
+                    <button class="button small" type="submit">{{ icon("search", 15) }} Find</button>
+                </div>
+                <div class="p2p-row p2p-more">
+                    <button type="button" class="button small ghost" data-gps>{{ icon("crosshair", 14) }} My location</button>
+                    <select data-wp aria-label="Use a saved waypoint"><option value="">Saved waypoint…</option></select>
+                    <button type="button" class="button small ghost" data-cancel hidden>Cancel</button>
+                </div>
+            </form>
+            <div class="p2p-cands" hidden></div>
+        </div>
     </div>
-    {% if key == "a" %}<div class="p2p-swap"><button type="button" class="button small ghost" id="swap" title="Swap A and B">⇅ Swap A and B</button></div>{% endif %}
+    {% if key == "a" %}<div class="p2p-swap"><button type="button" class="p2p-swap-btn" id="swap" title="Swap A and B" aria-label="Swap A and B">⇅</button></div>{% endif %}
     {% endfor %}
 </div>
 
-<form class="tool-panel" id="opts">
-    <h2>Options</h2>
+<details class="tool-panel p2p-opts" id="opts-box">
+<summary><span class="p2p-opts-title">Options</span> <span class="hint" id="opts-sum"></span></summary>
+<form id="opts">
     <div class="form-row">
         <div class="field"><label for="units">Units</label>
             <select name="units" id="units"><option value="imperial">Feet &amp; miles</option><option value="metric">Metres &amp; km</option></select></div>
@@ -33,6 +40,7 @@
     </div>
     <p class="hint" style="margin:0">Heights are eye or antenna height above the ground, used for the line-of-sight check (6 ft = standing). Leave declination blank to use the NOAA World Magnetic Model, or type your map's value (e.g. <span class="mono">5.2W</span>).</p>
 </form>
+</details>
 
 <div id="result" aria-live="polite"></div>
 {% endblock %}
@@ -105,26 +113,58 @@
   }
 
   // ---- choosing points ----------------------------------------------------------------
-  function setPoint(k, p) {
-    pts[k] = p ? { label: p.label, lat: +p.lat, lon: +p.lon, precision: p.precision, source: p.source, acc: p.acc } : null;
-    store.set("p2p:pts", pts);
-    showPicked(k);
-    compute();
+  // Each point is either being edited (search box + matches) or chosen (one compact line).
+  const editing = { a: !pts.a, b: !pts.b };
+  const ptEl = k => $(`.p2p-point[data-pt="${k}"]`);
+
+  function view(k) {
+    const el = ptEl(k), p = pts[k], ed = editing[k] || !p;
+    el.querySelector(".p2p-edit").hidden = !ed;
+    el.querySelector(".p2p-chosen").hidden = ed;
+    el.querySelector("[data-cancel]").hidden = !p;  // can back out of a change
+    if (p) {
+      const warn = (PREC[p.precision] || [, "warn"])[1] === "warn";
+      el.querySelector(".p2p-chosen strong").textContent = p.label;
+      const sm = el.querySelector(".p2p-chosen small");
+      sm.className = warn ? "p2p-warn" : "";
+      sm.textContent = `${warn ? "⚠ " : ""}${precLabel(p)} · ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`;
+    }
+    $("#p2p").classList.toggle("p2p-done", !!(pts.a && pts.b && !editing.a && !editing.b));
   }
-  function showPicked(k) {
-    const box = $(`[data-pt="${k}"] .p2p-picked`), p = pts[k];
-    if (!p) { box.hidden = true; return; }
-    const warn = (PREC[p.precision] || [, "warn"])[1] === "warn";
-    box.hidden = false;
-    box.innerHTML = `<strong>${esc(p.label)}</strong>
-      <span class="mono">${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} · ${esc(Geo.toMGRS(p.lat, p.lon))}</span>
-      <span class="hint ${warn ? "p2p-warn" : ""}">${warn ? "⚠ " : ""}${esc(precLabel(p))}</span>`;
+
+  function choose(k, p) {
+    pts[k] = { label: p.label, lat: +p.lat, lon: +p.lon, precision: p.precision, source: p.source, acc: p.acc };
+    store.set("p2p:pts", pts);
+    editing[k] = false;
+    const el = ptEl(k), cands = el.querySelector(".p2p-cands");
+    cands.hidden = true;
+    cands.innerHTML = "";
+    el.querySelector("input").value = p.label;
+    view(k);
+    const other = k === "a" ? "b" : "a";
+    if (!pts[other] || editing[other]) {
+      editing[other] = true;
+      view(other);
+      ptEl(other).querySelector("input").focus();
+    } else if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();  // close the phone keyboard
+    }
+    compute();
+    if (pts.a && pts.b && !editing.a && !editing.b) setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+  }
+
+  function edit(k) {
+    editing[k] = true;
+    view(k);
+    const input = ptEl(k).querySelector("input");
+    input.focus();
+    input.select();
   }
 
   async function find(k, q) {
     q = q.trim();
     if (!q) return;
-    const cands = $(`[data-pt="${k}"] .p2p-cands`);
+    const cands = ptEl(k).querySelector(".p2p-cands");
     const ll = q.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)$/);
     cands.hidden = false;
     cands.innerHTML = '<p class="hint">Searching…</p>';
@@ -134,10 +174,7 @@
       if (!r.ok) throw new Error(r.status);
       data = await r.json();
     } catch (e) {
-      if (ll && Math.abs(+ll[1]) <= 90 && Math.abs(+ll[2]) <= 180) {
-        cands.hidden = true;
-        return setPoint(k, { label: q, lat: +ll[1], lon: +ll[2], precision: "coordinates" });
-      }
+      if (ll && Math.abs(+ll[1]) <= 90 && Math.abs(+ll[2]) <= 180) return choose(k, { label: q, lat: +ll[1], lon: +ll[2], precision: "coordinates" });
       cands.innerHTML = '<p class="hint">Can’t reach the ARK to look that up. Enter coordinates instead (e.g. <span class="mono">38.2527, -85.7585</span>).</p>';
       return;
     }
@@ -146,15 +183,10 @@
       cands.innerHTML = `<p class="hint">Nothing found for “${esc(q)}”. Try adding the town and state, or a ZIP code.${data.offline_db ? "" : " The offline address database isn’t installed and the internet isn’t reachable."}</p>`;
       return;
     }
-    setPoint(k, res[0]);
-    if (res.length === 1) { cands.hidden = true; return; }
-    cands.innerHTML = '<p class="hint">Not the right place? Pick another:</p>' + res.map((r, i) =>
-      `<button type="button" class="p2p-cand${i === 0 ? " on" : ""}" data-i="${i}"><span>${esc(r.label)}</span><small>${esc(precLabel(r))}</small></button>`).join("");
-    cands.querySelectorAll("[data-i]").forEach(b => b.addEventListener("click", () => {
-      cands.querySelectorAll(".on").forEach(x => x.classList.remove("on"));
-      b.classList.add("on");
-      setPoint(k, res[+b.dataset.i]);
-    }));
+    if (res.length === 1) return choose(k, res[0]);
+    cands.innerHTML = `<p class="hint">${res.length} matches. Tap the right one:</p>` + res.map((r, i) =>
+      `<button type="button" class="p2p-cand" data-i="${i}"><span>${esc(r.label)}</span><small>${esc(precLabel(r))}</small></button>`).join("");
+    cands.querySelectorAll("[data-i]").forEach(b => b.addEventListener("click", () => choose(k, res[+b.dataset.i])));
   }
 
   let waypoints = [];
@@ -170,10 +202,17 @@
   $$(".p2p-point").forEach(el => {
     const k = el.dataset.pt, form = el.querySelector("form"), input = form.querySelector("input");
     form.addEventListener("submit", e => { e.preventDefault(); find(k, input.value); });
+    el.querySelector("[data-change]").addEventListener("click", () => edit(k));
+    el.querySelector("[data-cancel]").addEventListener("click", () => {
+      editing[k] = false;
+      el.querySelector(".p2p-cands").hidden = true;
+      input.value = pts[k] ? pts[k].label : "";
+      view(k);
+    });
     el.querySelector("[data-wp]").addEventListener("change", e => {
       const w = waypoints.find(x => x.id === e.target.value);
       e.target.value = "";
-      if (w) { input.value = w.name; el.querySelector(".p2p-cands").hidden = true; setPoint(k, { label: w.name, lat: w.lat, lon: w.lng, precision: "waypoint" }); }
+      if (w) choose(k, { label: w.name, lat: w.lat, lon: w.lng, precision: "waypoint" });
     });
     el.querySelector("[data-gps]").addEventListener("click", () => {
       const cands = el.querySelector(".p2p-cands");
@@ -184,22 +223,25 @@
       }
       cands.innerHTML = '<p class="hint">Getting a GPS fix…</p>';
       navigator.geolocation.getCurrentPosition(p => {
-        cands.hidden = true;
-        input.value = "My location";
-        setPoint(k, { label: "My location", lat: p.coords.latitude, lon: p.coords.longitude, precision: "gps", acc: p.coords.accuracy });
+        choose(k, { label: "My location", lat: p.coords.latitude, lon: p.coords.longitude, precision: "gps", acc: p.coords.accuracy });
       }, err => { cands.innerHTML = `<p class="hint">Location unavailable: ${esc(err.message)}</p>`; },
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 });
     });
-    if (pts[k]) { input.value = pts[k].label; showPicked(k); }
+    if (pts[k]) input.value = pts[k].label;
+    view(k);
   });
 
   $("#swap").addEventListener("click", () => {
     [pts.a, pts.b] = [pts.b, pts.a];
-    const qa = $("#q-a"), qb = $("#q-b");
-    [qa.value, qb.value] = [qb.value, qa.value];
+    editing.a = !pts.a;
+    editing.b = !pts.b;
+    $("#q-a").value = pts.a ? pts.a.label : "";
+    $("#q-b").value = pts.b ? pts.b.label : "";
     $$(".p2p-cands").forEach(c => { c.hidden = true; });
     store.set("p2p:pts", pts);
-    showPicked("a"); showPicked("b"); compute();
+    view("a");
+    view("b");
+    compute();
   });
 
   // ---- compute ------------------------------------------------------------------------
@@ -406,6 +448,8 @@
       return;
     }
     $$("#opts .hu").forEach(s => { s.textContent = v.units === "metric" ? "m" : "ft"; });
+    const hu = v.units === "metric" ? "m" : "ft", dv = String(v.decl || "").trim();
+    $("#opts-sum").textContent = `${v.units === "metric" ? "Metric" : "Feet & miles"} · heights ${isFinite(v.ha) ? v.ha : "-"} / ${isFinite(v.hb) ? v.hb : "-"} ${hu} · declination ${dv || "auto"}`;
     const recalc = !prevUnits || v.ha !== opts.ha || v.hb !== opts.hb;
     prevUnits = v.units;
     opts = v;

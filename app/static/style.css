@@ -490,24 +490,38 @@ mark { background: var(--accent-soft); color: var(--accent); padding: 0 0.1em; b
 /* ---------- Point to Point tool ---------- */
 .callout.ok { background: color-mix(in srgb, var(--ok) 12%, transparent); border-color: color-mix(in srgb, var(--ok) 45%, transparent); color: var(--ok); }
 .callout.ok p { color: var(--text-soft); }
+.p2p-points [hidden], .p2p-opts [hidden] { display: none !important; }  /* display:grid/flex below must not beat [hidden] */
 .p2p-point { display: grid; gap: 0.5rem; }
-.p2p-point + .p2p-point { margin-top: 0.4rem; }
 .p2p-find { display: grid; gap: 0.45rem; }
+.p2p-find .label { display: flex; align-items: center; gap: 0.45rem; }
+.p2p-badge { display: inline-grid; place-items: center; flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-family: var(--font-mono); font-weight: 700; font-size: 0.8rem; letter-spacing: 0; }
+.p2p-chosen { display: flex; align-items: center; gap: 0.7rem; padding: 0.55rem 0.7rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.p2p-chosen-text { flex: 1; min-width: 0; display: grid; gap: 0.1rem; }
+.p2p-chosen-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p2p-chosen-text small { color: var(--muted); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p2p-chosen .button { flex: none; }
+.p2p-swap { display: flex; justify-content: center; margin: 0.35rem 0; }
+.p2p-swap-btn { width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text-soft); font-size: 1rem; line-height: 1; cursor: pointer; }
+.p2p-swap-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tool-panel.p2p-points { padding: 1rem; }
+.p2p-done .p2p-swap { margin: -0.2rem 0; position: relative; z-index: 1; }
+.p2p-opts { padding: 0; }
+.p2p-opts summary { cursor: pointer; padding: 0.85rem 1.1rem; list-style: none; display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap; }
+.p2p-opts summary::-webkit-details-marker { display: none; }
+.p2p-opts summary::before { content: "▸"; color: var(--muted); transition: transform 0.15s; }
+.p2p-opts[open] summary::before { transform: rotate(90deg); }
+.p2p-opts-title { font-family: var(--font-head); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.p2p-opts form { padding: 0 1.1rem 1.1rem; }
 .p2p-row { display: flex; gap: 0.5rem; align-items: center; }
 .p2p-row input { flex: 1; min-width: 0; }
 .p2p-row .button { white-space: nowrap; display: inline-flex; align-items: center; gap: 0.35rem; }
 .p2p-more select { flex: 1; min-width: 0; padding: 0.4rem 0.6rem; font-size: 0.9rem; }
-.p2p-picked { display: grid; gap: 0.15rem; padding: 0.65rem 0.8rem; background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
-.p2p-picked .mono { font-size: 0.85rem; color: var(--text-soft); }
-.p2p-picked .hint { margin: 0; }
 .p2p-warn { color: var(--warn) !important; }
 .p2p-cands { display: grid; gap: 0.3rem; }
 .p2p-cands .hint { margin: 0.2rem 0; }
 .p2p-cand { display: grid; text-align: left; gap: 0.1rem; padding: 0.5rem 0.7rem; font: inherit; font-size: 0.92rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; overflow-wrap: anywhere; }
 .p2p-cand small { color: var(--muted); font-size: 0.78rem; }
 .p2p-cand:hover { border-color: var(--accent); }
-.p2p-cand.on { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
-.p2p-swap { display: flex; justify-content: center; margin: 0.9rem 0 0.5rem; }
 #result.p2p-busy { opacity: 0.55; transition: opacity 0.2s; }
 .p2p-actions { flex-wrap: wrap; }
 .p2p-legend { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-soft); margin-bottom: 0.4rem; }
