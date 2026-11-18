@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from app import bible
+from app import bible, terrain
 
 # ----------------------
 # CONFIG
@@ -707,6 +707,7 @@ TOOLS = [
     ("generator", "Generator Fuel",       "Fuel needed to run a generator for a given time.", "fuel"),
     ("radio",     "Antenna & Ohm's Law",  "Dipole / quarter-wave lengths and Ohm's law solver.", "radio"),
     ("morse",     "Morse Code",           "Translate text to Morse and back, with audio and light.", "signal"),
+    ("azimuth",   "Point to Point",       "Two addresses or grid refs: azimuth, distance, elevation change and terrain profile.", "compass"),
     ("sun",       "Sun & Moon",           "Sunrise, sunset, daylight and moon phase — fully offline.", "sun"),
     ("convert",   "Unit Converter",       "Length, weight, volume, temperature, cooking measures.", "scale"),
     ("weather",   "Wind Chill & Heat",    "Wind chill, heat index and dew point danger levels.", "thermo"),
@@ -889,6 +890,33 @@ async def waypoint_upsert(request: Request):
 def waypoint_delete(item_id: str):
     _delete("waypoints", item_id)
     return JSONResponse({"ok": True})
+
+
+# --- Point to point: find places, then azimuth / elevation / terrain between two points
+def _latlon(s: str) -> tuple[float, float]:
+    try:
+        lat, lon = (float(x) for x in s.split(","))
+    except ValueError:
+        raise HTTPException(400, "want lat,lon")
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise HTTPException(400, "lat/lon out of range")
+    return lat, lon
+
+
+@app.get("/api/geo/find")
+def geo_find(q: str = ""):
+    return JSONResponse(terrain.find(q))
+
+
+@app.get("/api/geo/path")
+def geo_path(a: str, b: str, ha: float = 2.0, hb: float = 2.0):
+    ha, hb = max(0.0, min(ha, 1000.0)), max(0.0, min(hb, 1000.0))
+    return JSONResponse(terrain.analyze(_latlon(a), _latlon(b), ha, hb))
+
+
+@app.get("/api/geo/status")
+def geo_status():
+    return JSONResponse(terrain.status())
 
 
 # ----------------------

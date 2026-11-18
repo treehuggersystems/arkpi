@@ -1,0 +1,425 @@
+{% extends "tools/_tool.html" %}
+{% block tool %}
+<div class="tool-panel" id="p2p">
+    <h2>Two points</h2>
+    {% for key, label in [("a", "From · A"), ("b", "To · B")] %}
+    <div class="p2p-point" data-pt="{{ key }}">
+        <form class="p2p-find" autocomplete="off">
+            <label class="label" for="q-{{ key }}">{{ label }}</label>
+            <div class="p2p-row">
+                <input id="q-{{ key }}" name="q" type="text" placeholder="Address, town, ZIP, lat/lon or MGRS" enterkeyhint="search">
+                <button class="button small" type="submit">{{ icon("search", 15) }} Find</button>
+            </div>
+            <div class="p2p-row p2p-more">
+                <button type="button" class="button small ghost" data-gps>{{ icon("crosshair", 14) }} My location</button>
+                <select data-wp aria-label="Use a saved waypoint"><option value="">Saved waypoint…</option></select>
+            </div>
+        </form>
+        <div class="p2p-picked" hidden></div>
+        <div class="p2p-cands" hidden></div>
+    </div>
+    {% if key == "a" %}<div class="p2p-swap"><button type="button" class="button small ghost" id="swap" title="Swap A and B">⇅ Swap A and B</button></div>{% endif %}
+    {% endfor %}
+</div>
+
+<form class="tool-panel" id="opts">
+    <h2>Options</h2>
+    <div class="form-row">
+        <div class="field"><label for="units">Units</label>
+            <select name="units" id="units"><option value="imperial">Feet &amp; miles</option><option value="metric">Metres &amp; km</option></select></div>
+        <div class="field"><label for="ha">Height at A (<span class="hu">ft</span>)</label><input type="number" name="ha" id="ha" value="6" min="0" step="any"></div>
+        <div class="field"><label for="hb">Height at B (<span class="hu">ft</span>)</label><input type="number" name="hb" id="hb" value="6" min="0" step="any"></div>
+        <div class="field"><label for="decl">Declination</label><input type="text" name="decl" id="decl" placeholder="Auto (e.g. 5.2W)" inputmode="text"></div>
+    </div>
+    <p class="hint" style="margin:0">Heights are eye or antenna height above the ground, used for the line-of-sight check (6 ft = standing). Leave declination blank to use the NOAA World Magnetic Model, or type your map's value (e.g. <span class="mono">5.2W</span>).</p>
+</form>
+
+<div id="result" aria-live="polite"></div>
+{% endblock %}
+
+{% block side %}
+<div class="side-box" style="margin-top:1rem">
+    <h4>Reading the result</h4>
+    <ul class="hint">
+        <li><strong>True</strong> azimuth is from true north, for maps and the stars.</li>
+        <li><strong>Magnetic</strong> is what to set on a compass.</li>
+        <li><strong>Back azimuth</strong> is the bearing for the trip home.</li>
+        <li><strong>Mils</strong>: 6400 to a circle (military compasses).</li>
+        <li>Line of sight assumes radio refraction (4/3 Earth). Trees and buildings aren't in the terrain data.</li>
+    </ul>
+</div>
+<div class="side-box" style="margin-top:1rem" id="data-status">
+    <h4>Offline data</h4>
+    <p class="hint" style="margin:0">Checking…</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/geo.js?v={{ v }}"></script>
+<script>
+(function () {
+  "use strict";
+  const { $, $$, store, fmt } = window.ARK;
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const FT = 3.28084, MI = 1609.344, K = 4 / 3, R = 6371008.8;
+  const ICON = {
+    check: '<svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>',
+    alert: '<svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3L2 21h20z"/><path d="M12 10v5M12 18h.01"/></svg>',
+  };
+  const pts = store.get("p2p:pts", { a: null, b: null });
+  let opts = {}, last = null, reqId = 0, prevUnits = null, timer = null;
+
+  // ---- formatting ---------------------------------------------------------------------
+  const imp = () => opts.units !== "metric";
+  const n360 = x => ((x % 360) + 360) % 360;
+  const mils = d => Math.round(d * 6400 / 360) % 6400;
+  const h = m => imp() ? `${fmt(m * FT, 0)} ft` : `${fmt(m, 0)} m`;
+  const hBoth = m => imp() ? `${fmt(m * FT, 0)} <span class="u">ft · ${fmt(m, 0)} m</span>` : `${fmt(m, 0)} <span class="u">m · ${fmt(m * FT, 0)} ft</span>`;
+  const sign = v => v > 0.5 ? "+" : v < -0.5 ? "−" : "±";
+  const hSigned = m => imp() ? `${sign(m)}${fmt(Math.abs(m * FT), 0)} <span class="u">ft · ${sign(m)}${fmt(Math.abs(m), 0)} m</span>`
+                             : `${sign(m)}${fmt(Math.abs(m), 0)} <span class="u">m · ${sign(m)}${fmt(Math.abs(m * FT), 0)} ft</span>`;
+  const dist = m => imp() ? (m < 0.1 * MI ? `${fmt(m * FT, 0)} ft` : `${fmt(m / MI, m < 10 * MI ? 2 : 1)} mi`)
+                          : (m < 1000 ? `${fmt(m, 0)} m` : `${fmt(m / 1000, m < 10000 ? 2 : 1)} km`);
+  const distAlt = m => imp() ? `${fmt(m / 1000, 2)} km` : `${fmt(m / MI, 2)} mi`;
+  const deg1 = d => `${n360(d).toFixed(1)}°`;
+  const declTxt = d => `${Math.abs(d).toFixed(1)}° ${d < 0 ? "W" : "E"}`;
+  const toM = v => imp() ? v / FT : v;
+
+  function manualDecl() {
+    const m = String(opts.decl || "").trim().match(/^([+-]?\d+(?:\.\d+)?)\s*°?\s*([EW])?$/i);
+    if (!m) return null;
+    const v = parseFloat(m[1]);
+    return m[2] ? (m[2].toUpperCase() === "W" ? -Math.abs(v) : Math.abs(v)) : v;
+  }
+
+  const PREC = {
+    address: ["Street address", ""], street: ["Street only: house number not found, nearest block", "warn"],
+    city: ["Town center", "warn"], zip: ["ZIP code center", "warn"], county: ["County center", "warn"],
+    coordinates: ["Coordinates", ""], gps: ["GPS fix", ""], waypoint: ["Saved waypoint", ""],
+  };
+  function precLabel(p) {
+    const [txt] = PREC[p.precision] || [p.precision ? `Approximate (${p.precision})` : "Place"];
+    const src = p.source === "offline" ? " · offline database" : p.source === "online" ? " · OpenStreetMap (online)" : "";
+    const acc = p.precision === "gps" && p.acc ? ` ±${h(p.acc)}` : "";
+    return txt + acc + src;
+  }
+
+  // ---- choosing points ----------------------------------------------------------------
+  function setPoint(k, p) {
+    pts[k] = p ? { label: p.label, lat: +p.lat, lon: +p.lon, precision: p.precision, source: p.source, acc: p.acc } : null;
+    store.set("p2p:pts", pts);
+    showPicked(k);
+    compute();
+  }
+  function showPicked(k) {
+    const box = $(`[data-pt="${k}"] .p2p-picked`), p = pts[k];
+    if (!p) { box.hidden = true; return; }
+    const warn = (PREC[p.precision] || [, "warn"])[1] === "warn";
+    box.hidden = false;
+    box.innerHTML = `<strong>${esc(p.label)}</strong>
+      <span class="mono">${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} · ${esc(Geo.toMGRS(p.lat, p.lon))}</span>
+      <span class="hint ${warn ? "p2p-warn" : ""}">${warn ? "⚠ " : ""}${esc(precLabel(p))}</span>`;
+  }
+
+  async function find(k, q) {
+    q = q.trim();
+    if (!q) return;
+    const cands = $(`[data-pt="${k}"] .p2p-cands`);
+    const ll = q.match(/^(-?\d{1,2}(?:\.\d+)?)\s*[,\s]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+    cands.hidden = false;
+    cands.innerHTML = '<p class="hint">Searching…</p>';
+    let data;
+    try {
+      const r = await fetch("/api/geo/find?q=" + encodeURIComponent(q));
+      if (!r.ok) throw new Error(r.status);
+      data = await r.json();
+    } catch (e) {
+      if (ll && Math.abs(+ll[1]) <= 90 && Math.abs(+ll[2]) <= 180) {
+        cands.hidden = true;
+        return setPoint(k, { label: q, lat: +ll[1], lon: +ll[2], precision: "coordinates" });
+      }
+      cands.innerHTML = '<p class="hint">Can’t reach the ARK to look that up. Enter coordinates instead (e.g. <span class="mono">38.2527, -85.7585</span>).</p>';
+      return;
+    }
+    const res = data.results || [];
+    if (!res.length) {
+      cands.innerHTML = `<p class="hint">Nothing found for “${esc(q)}”. Try adding the town and state, or a ZIP code.${data.offline_db ? "" : " The offline address database isn’t installed and the internet isn’t reachable."}</p>`;
+      return;
+    }
+    setPoint(k, res[0]);
+    if (res.length === 1) { cands.hidden = true; return; }
+    cands.innerHTML = '<p class="hint">Not the right place? Pick another:</p>' + res.map((r, i) =>
+      `<button type="button" class="p2p-cand${i === 0 ? " on" : ""}" data-i="${i}"><span>${esc(r.label)}</span><small>${esc(precLabel(r))}</small></button>`).join("");
+    cands.querySelectorAll("[data-i]").forEach(b => b.addEventListener("click", () => {
+      cands.querySelectorAll(".on").forEach(x => x.classList.remove("on"));
+      b.classList.add("on");
+      setPoint(k, res[+b.dataset.i]);
+    }));
+  }
+
+  let waypoints = [];
+  async function loadWaypoints() {
+    try { waypoints = await (await fetch("/api/waypoints")).json(); } catch (e) { waypoints = []; }
+    waypoints.sort((a, b) => a.name.localeCompare(b.name));
+    $$("[data-wp]").forEach(sel => {
+      sel.innerHTML = `<option value="">${waypoints.length ? "Saved waypoint…" : "No saved waypoints"}</option>` +
+        waypoints.map(w => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join("");
+    });
+  }
+
+  $$(".p2p-point").forEach(el => {
+    const k = el.dataset.pt, form = el.querySelector("form"), input = form.querySelector("input");
+    form.addEventListener("submit", e => { e.preventDefault(); find(k, input.value); });
+    el.querySelector("[data-wp]").addEventListener("change", e => {
+      const w = waypoints.find(x => x.id === e.target.value);
+      e.target.value = "";
+      if (w) { input.value = w.name; el.querySelector(".p2p-cands").hidden = true; setPoint(k, { label: w.name, lat: w.lat, lon: w.lng, precision: "waypoint" }); }
+    });
+    el.querySelector("[data-gps]").addEventListener("click", () => {
+      const cands = el.querySelector(".p2p-cands");
+      cands.hidden = false;
+      if (!window.isSecureContext || !("geolocation" in navigator)) {
+        cands.innerHTML = `<p class="hint">GPS needs the secure address: <a href="https://${esc(location.hostname)}${esc(location.pathname)}">https://${esc(location.hostname)}${esc(location.pathname)}</a></p>`;
+        return;
+      }
+      cands.innerHTML = '<p class="hint">Getting a GPS fix…</p>';
+      navigator.geolocation.getCurrentPosition(p => {
+        cands.hidden = true;
+        input.value = "My location";
+        setPoint(k, { label: "My location", lat: p.coords.latitude, lon: p.coords.longitude, precision: "gps", acc: p.coords.accuracy });
+      }, err => { cands.innerHTML = `<p class="hint">Location unavailable: ${esc(err.message)}</p>`; },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 });
+    });
+    if (pts[k]) { input.value = pts[k].label; showPicked(k); }
+  });
+
+  $("#swap").addEventListener("click", () => {
+    [pts.a, pts.b] = [pts.b, pts.a];
+    const qa = $("#q-a"), qb = $("#q-b");
+    [qa.value, qb.value] = [qb.value, qa.value];
+    $$(".p2p-cands").forEach(c => { c.hidden = true; });
+    store.set("p2p:pts", pts);
+    showPicked("a"); showPicked("b"); compute();
+  });
+
+  // ---- compute ------------------------------------------------------------------------
+  async function compute() {
+    const { a, b } = pts, out = $("#result");
+    if (!a || !b) {
+      last = null;
+      out.innerHTML = '<div class="tool-panel"><p class="hint" style="margin:0">Enter both points to see the azimuth, distance and elevation change. Points can be street addresses, towns, ZIP codes, <span class="mono">lat, lon</span>, MGRS grid references, your GPS location or a saved waypoint.</p></div>';
+      return;
+    }
+    const id = ++reqId;
+    out.classList.add("p2p-busy");
+    const ha = Math.max(0, toM(isFinite(opts.ha) ? opts.ha : 6)), hb = Math.max(0, toM(isFinite(opts.hb) ? opts.hb : 6));
+    let data = null;
+    try {
+      const r = await fetch(`/api/geo/path?a=${a.lat},${a.lon}&b=${b.lat},${b.lon}&ha=${ha.toFixed(2)}&hb=${hb.toFixed(2)}`);
+      if (r.ok) data = await r.json();
+    } catch (e) { /* offline from the ARK: fall back below */ }
+    if (id !== reqId) return;
+    out.classList.remove("p2p-busy");
+    if (!data) {  // away from the ARK: distance & azimuth still work on the phone
+      data = { local: true, profile: [], distance: Geo.distance(a.lat, a.lon, b.lat, b.lon),
+               azimuth: Geo.bearing(a.lat, a.lon, b.lat, b.lon), back_azimuth: Geo.bearing(b.lat, b.lon, a.lat, a.lon),
+               a: { elev: null }, b: { elev: null }, declination: null, declination_b: null };
+    }
+    last = data;
+    render();
+  }
+  const later = () => { clearTimeout(timer); timer = setTimeout(compute, 350); };
+
+  // ---- render -------------------------------------------------------------------------
+  function render() {
+    const d = last, out = $("#result");
+    if (!d) return;
+    const a = pts.a, b = pts.b;
+    const man = manualDecl();
+    const decl = man ?? d.declination, declB = man ?? d.declination_b ?? decl;
+    const magAz = decl == null ? null : n360(d.azimuth - decl), magBack = declB == null ? null : n360(d.back_azimuth - declB);
+    const hasElev = d.a.elev != null && d.b.elev != null;
+    let html = "";
+
+    if (d.local) html += `<div class="callout warn">${ICON.alert}<div><strong>Can’t reach the ARK</strong><p>Showing distance and azimuth worked out on this device. Elevation, terrain and address lookup need the ARK server.${man == null ? " Type a declination above to get the magnetic azimuth." : ""}</p></div></div>`;
+
+    html += `<div class="tool-panel"><h2>A → B</h2><div class="readout" style="margin-top:0">
+      <div class="r big"><span class="k">Azimuth (true)</span><span class="v">${deg1(d.azimuth)} <span class="u">${Geo.cardinal(d.azimuth)} · ${mils(d.azimuth)} mils</span></span></div>
+      ${magAz != null ? `<div class="r big"><span class="k">Magnetic (set your compass)</span><span class="v">${deg1(magAz)} <span class="u">${mils(magAz)} mils · declination ${declTxt(decl)}${man != null ? " (yours)" : ""}</span></span></div>` : ""}
+      <div class="r"><span class="k">Back azimuth B → A</span><span class="v">${deg1(d.back_azimuth)} <span class="u">true${magBack != null ? ` · ${deg1(magBack)} mag` : ""}</span></span></div>
+      <div class="r"><span class="k">Distance</span><span class="v">${dist(d.distance)} <span class="u">${distAlt(d.distance)} · straight line</span></span></div>
+      ${hasElev ? `
+      <div class="r"><span class="k">Elevation A</span><span class="v">${hBoth(d.a.elev)}</span></div>
+      <div class="r"><span class="k">Elevation B</span><span class="v">${hBoth(d.b.elev)}</span></div>
+      <div class="r big"><span class="k">Elevation change A → B</span><span class="v">${hSigned(d.change)}</span>
+        <span class="u">${Math.abs(d.change) < 0.5 ? "Same elevation" : `B is ${d.change > 0 ? "higher" : "lower"} than A`} · average grade ${d.grade >= 0.05 ? "+" : d.grade <= -0.05 ? "−" : "±"}${Math.abs(d.grade).toFixed(1)}% · slope ${Math.abs(d.slope_deg).toFixed(2)}°</span></div>
+      <div class="r"><span class="k">Aim angle at A</span><span class="v">${d.aim_deg >= 0 ? "+" : "−"}${Math.abs(d.aim_deg).toFixed(2)}° <span class="u">${d.aim_deg >= 0 ? "up" : "down"} from level, Earth curve included</span></span></div>` : ""}
+      ${d.high ? `
+      <div class="r"><span class="k">Highest on the way</span><span class="v">${h(d.high.elev)} <span class="u">${dist(d.high.at)} from A</span></span></div>
+      <div class="r"><span class="k">Lowest on the way</span><span class="v">${h(d.low.elev)} <span class="u">${dist(d.low.at)} from A</span></span></div>
+      <div class="r"><span class="k">Up &amp; down along the line</span><span class="v">↑${h(d.climb)} <span class="u">↓${h(d.descent)} total, if walked straight</span></span></div>` : ""}
+    </div></div>`;
+
+    if (d.los) {
+      const L = d.los;
+      html += L.clear
+        ? `<div class="callout ok">${ICON.check}<div><strong>Line of sight: clear</strong><p>At ${h(L.ha)} and ${h(L.hb)} above the ground, terrain stays at least ${h(L.min_clearance)} below the line (tightest ${dist(L.at)} from A). Trees and buildings aren’t included, and a radio path also needs room around the line (Fresnel zone).</p></div></div>`
+        : `<div class="callout danger">${ICON.alert}<div><strong>Line of sight: blocked by terrain</strong><p>${dist(L.at)} from A the ground is ${h(-L.min_clearance)} above the line between A (${h(L.ha)} up) and B (${h(L.hb)} up). VHF/UHF radio will be weak or need a relay; HF or a higher antenna may work.</p></div></div>`;
+    }
+
+    if (d.profile && d.profile.some(p => p.e != null)) {
+      html += `<div class="tool-panel"><h2>Terrain profile</h2>
+        <div class="p2p-legend"><span><i class="sw terrain"></i>Ground elevation</span>${d.los_line ? '<span><i class="sw los"></i>Line of sight</span>' : ""}</div>
+        <div class="p2p-chart" id="chart"><div class="p2p-tip" id="tip" hidden></div></div>
+        <details class="p2p-table"><summary class="hint">Profile as a table</summary><div id="ptable"></div></details></div>`;
+    } else if (!d.local) {
+      html += `<div class="callout warn">${ICON.alert}<div><strong>No elevation data here</strong><p>These points are outside the offline terrain data and the internet isn’t reachable. Download terrain for your region with <code>sudo ARK_FETCH=elevation /opt/offline-server/install.sh</code>.</p></div></div>`;
+    }
+
+    // sources & actions
+    const srcs = [];
+    if (d.elev_source === "offline") srcs.push(`Elevation from offline SRTM terrain data (${d.elev_res_m || 30} m grid, typically ±5–10 m).`);
+    else if (d.elev_source === "mixed") srcs.push("Elevation partly offline SRTM, partly online (Open-Meteo).");
+    else if (d.elev_source === "online") srcs.push("Elevation from the internet (Open-Meteo, 90 m). Download offline terrain to work without it.");
+    if (decl != null && man == null && d.magnetic_model) srcs.push(`Declination from NOAA ${d.magnetic_model.model} for ${d.magnetic_model.year}${d.magnetic_model.valid ? "" : ", <strong>outside the model’s 2025–2030 range: enter your own</strong>"}.`);
+    srcs.push(d.local ? "Azimuth and distance on a spherical Earth (within about 0.3%)." : "Azimuth and distance on the WGS84 ellipsoid (Vincenty).");
+    const mapUrl = `/map#line=${a.lat.toFixed(6)},${a.lon.toFixed(6)},${b.lat.toFixed(6)},${b.lon.toFixed(6)}&na=${encodeURIComponent(a.label)}&nb=${encodeURIComponent(b.label)}`;
+    html += `<div class="tool-panel"><div class="wp-actions p2p-actions">
+        <a class="button small" href="${mapUrl}">${"Show on map"}</a>
+        <button type="button" class="button small ghost" data-save="a"${d.local ? " disabled" : ""}>＋ Save A as waypoint</button>
+        <button type="button" class="button small ghost" data-save="b"${d.local ? " disabled" : ""}>＋ Save B as waypoint</button>
+      </div><p class="hint" style="margin:0.8rem 0 0">${srcs.join(" ")}</p></div>`;
+
+    out.innerHTML = html;
+    out.querySelectorAll("[data-save]").forEach(btn => btn.addEventListener("click", async () => {
+      const p = pts[btn.dataset.save];
+      btn.disabled = true;
+      try {
+        const r = await fetch("/api/waypoints", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: p.label.slice(0, 80), lat: p.lat, lng: p.lon, kind: "point", notes: "From Point to Point" }) });
+        btn.textContent = r.ok ? "✓ Saved" : "Couldn’t save";
+        if (r.ok) loadWaypoints();
+      } catch (e) { btn.textContent = "Couldn’t save"; btn.disabled = false; }
+    }));
+    if ($("#chart")) { chart(d); table(d); }
+  }
+
+  // ---- profile chart ------------------------------------------------------------------
+  function niceStep(span, n) {
+    const raw = span / n, p = 10 ** Math.floor(Math.log10(raw)), f = raw / p;
+    return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
+  }
+  function losAt(d, x) {
+    if (!d.los) return null;
+    const ta = d.a.elev + d.los.ha, tb = d.b.elev + d.los.hb, D = d.distance;
+    return ta + (tb - ta) * x / D - x * (D - x) / (2 * K * R);
+  }
+
+  function chart(d) {
+    const box = $("#chart"), tip = $("#tip");
+    const P = d.profile.filter(p => p.e != null), D = d.distance || 1;
+    const W = Math.max(280, box.clientWidth), H = Math.round(Math.min(320, Math.max(200, W * 0.42)));
+    const m = { l: 54, r: 14, t: 14, b: 32 };
+    const hu = imp() ? FT : 1, du = imp() ? 1 / MI : 1 / 1000, dun = imp() ? "mi" : "km", hun = imp() ? "ft" : "m";
+    const los = d.los_line || [];
+    const ys = P.map(p => p.e).concat(los.map(p => p.e));
+    let y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const pad = Math.max((y1 - y0) * 0.08, 3);
+    y0 -= pad; y1 += pad;
+    const sx = x => m.l + x / D * (W - m.l - m.r), sy = e => m.t + (y1 - e) / (y1 - y0) * (H - m.t - m.b);
+    let g = "";
+    // y grid (display units)
+    const ys0 = y0 * hu, ys1 = y1 * hu, yst = niceStep(ys1 - ys0, 4);
+    for (let v = Math.ceil(ys0 / yst) * yst; v <= ys1; v += yst) {
+      const y = sy(v / hu).toFixed(1);
+      g += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}"/><text class="ax" x="${m.l - 6}" y="${y}" dy="0.32em" text-anchor="end">${fmt(v, 0)}</text>`;
+    }
+    g += `<text class="ax" x="${m.l - 6}" y="${m.t - 4}" text-anchor="end">${hun}</text>`;
+    const xst = niceStep(D * du, Math.max(2, Math.floor(W / 110)));
+    for (let v = 0; v <= D * du + 1e-9; v += xst) {
+      const x = sx(v / du).toFixed(1);
+      g += `<line class="tick" x1="${x}" x2="${x}" y1="${H - m.b}" y2="${H - m.b + 4}"/><text class="ax" x="${x}" y="${H - m.b + 16}" text-anchor="middle">${fmt(v, xst < 1 ? 2 : 0)}</text>`;
+    }
+    g += `<text class="ax" x="${W - m.r}" y="${H - 4}" text-anchor="end">${dun} from A</text>`;
+    const line = P.map((p, i) => `${i ? "L" : "M"}${sx(p.d).toFixed(1)},${sy(p.e).toFixed(1)}`).join("");
+    const base = (H - m.b).toFixed(1);
+    g += `<path class="area" d="${line}L${sx(P[P.length - 1].d).toFixed(1)},${base}L${sx(P[0].d).toFixed(1)},${base}Z"/>`;
+    g += `<line class="axis" x1="${m.l}" x2="${W - m.r}" y1="${base}" y2="${base}"/>`;
+    g += `<path class="terrain" d="${line}"/>`;
+    if (los.length) g += `<path class="los" d="${los.map((p, i) => `${i ? "L" : "M"}${sx(p.d).toFixed(1)},${sy(p.e).toFixed(1)}`).join("")}"/>`;
+    // endpoints
+    [[0, d.a.elev, "A"], [D, d.b.elev, "B"]].forEach(([x, e, lab]) => {
+      if (e == null) return;
+      g += `<circle class="end" cx="${sx(x).toFixed(1)}" cy="${sy(e).toFixed(1)}" r="5"/><text class="lab" x="${sx(x).toFixed(1)}" y="${(sy(e) - 10).toFixed(1)}" text-anchor="${x ? "end" : "start"}">${lab}</text>`;
+    });
+    if (d.los && !d.los.clear) {
+      g += `<circle class="block" cx="${sx(d.los.at).toFixed(1)}" cy="${sy(d.los.terrain).toFixed(1)}" r="6"/><text class="lab" x="${sx(d.los.at).toFixed(1)}" y="${(sy(d.los.terrain) - 12).toFixed(1)}" text-anchor="middle">Blocks</text>`;
+    }
+    g += `<line class="cross" id="cx" x1="0" x2="0" y1="${m.t}" y2="${base}" visibility="hidden"/><circle class="dot" id="cd" r="5" visibility="hidden"/>`;
+    g += `<rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H}" fill="transparent" id="hit"/>`;
+    const old = box.querySelector("svg");
+    old && old.remove();
+    box.insertAdjacentHTML("afterbegin", `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Terrain profile from A to B, ${h(d.high ? d.high.elev : 0)} highest">${g}</svg>`);
+    const svg = box.querySelector("svg"), cx = svg.querySelector("#cx"), cd = svg.querySelector("#cd");
+    const move = ev => {
+      const r = svg.getBoundingClientRect(), x = (ev.clientX - r.left) * (W / r.width);
+      const t = Math.max(0, Math.min(D, (x - m.l) / (W - m.l - m.r) * D));
+      let best = P[0];
+      for (const p of P) if (Math.abs(p.d - t) < Math.abs(best.d - t)) best = p;
+      const px = sx(best.d), py = sy(best.e);
+      cx.setAttribute("x1", px); cx.setAttribute("x2", px); cx.setAttribute("visibility", "visible");
+      cd.setAttribute("cx", px); cd.setAttribute("cy", py); cd.setAttribute("visibility", "visible");
+      const la = losAt(d, best.d), clr = la == null ? "" : `<div>${la - best.e >= 0 ? "Clear by" : "Blocks by"} ${h(Math.abs(la - best.e))}</div>`;
+      tip.innerHTML = `<strong>${h(best.e)}</strong><div>${dist(best.d)} from A</div>${clr}`;
+      tip.hidden = false;
+      const tw = tip.offsetWidth, left = px / W * r.width;
+      tip.style.left = `${Math.min(r.width - tw - 4, Math.max(4, left + 12 + tw > r.width ? left - tw - 12 : left + 12))}px`;
+      tip.style.top = `${Math.max(4, py / H * r.height - 40)}px`;
+    };
+    const leave = () => { tip.hidden = true; cx.setAttribute("visibility", "hidden"); cd.setAttribute("visibility", "hidden"); };
+    const hit = svg.querySelector("#hit");
+    hit.addEventListener("pointermove", move);
+    hit.addEventListener("pointerdown", move);
+    hit.addEventListener("pointerleave", leave);
+  }
+
+  function table(d) {
+    const P = d.profile.filter(p => p.e != null), step = Math.max(1, Math.ceil(P.length / 24));
+    const rows = P.filter((_, i) => i % step === 0 || i === P.length - 1).map(p => {
+      const la = losAt(d, p.d);
+      return `<tr><td>${dist(p.d)}</td><td>${h(p.e)}</td>${la == null ? "" : `<td>${la - p.e >= 0 ? "+" : "−"}${h(Math.abs(la - p.e))}</td>`}</tr>`;
+    }).join("");
+    $("#ptable").innerHTML = `<table class="mono"><thead><tr><th>From A</th><th>Ground</th>${d.los ? "<th>Line of sight clearance</th>" : ""}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  let rz;
+  window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => last && $("#chart") && chart(last), 150); });
+  document.addEventListener("ark:theme", () => last && render());
+
+  // ---- options (remembered per device) -------------------------------------------------
+  ARK.calc("#opts", v => {
+    if (prevUnits && v.units !== prevUnits) {  // keep the same physical heights when switching units
+      const f = v.units === "metric" ? 1 / FT : FT;
+      ["ha", "hb"].forEach(n => { const el = $(`#${n}`); const x = parseFloat(el.value); if (isFinite(x)) el.value = Math.round(x * f * 10) / 10; });
+      prevUnits = v.units;
+      $("#opts").dispatchEvent(new Event("input"));  // re-save the converted values
+      return;
+    }
+    $$("#opts .hu").forEach(s => { s.textContent = v.units === "metric" ? "m" : "ft"; });
+    const recalc = !prevUnits || v.ha !== opts.ha || v.hb !== opts.hb;
+    prevUnits = v.units;
+    opts = v;
+    if (recalc) later(); else render();
+  });
+
+  loadWaypoints();
+  fetch("/api/geo/status").then(r => r.json()).then(s => {
+    const e = s.elevation || {}, ad = s.addresses;
+    $("#data-status").innerHTML = `<h4>Offline data</h4><ul class="hint">
+      <li><strong>Terrain:</strong> ${e.tiles ? `${e.tiles} tiles, ${e.resolution_m} m` : "not installed"}</li>
+      <li><strong>Addresses:</strong> ${ad && ad.segments ? `${fmt(ad.segments, 0)} address ranges, ${ad.counties} counties` : "not installed"}</li>
+      </ul>${!e.tiles || !(ad && ad.segments) ? `<p class="hint" style="margin:0.5rem 0 0">Without these it uses the internet when there is one. To install (needs internet once):<br><code>sudo ARK_FETCH=elevation,addresses /opt/offline-server/install.sh</code></p>` : ""}`;
+  }).catch(() => { $("#data-status").innerHTML = '<h4>Offline data</h4><p class="hint" style="margin:0">ARK server not reachable.</p>'; });
+})();
+</script>
+{% endblock %}

@@ -337,4 +337,26 @@
     const t = $("#map-toast"); t.textContent = msg; t.hidden = false;
     clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 4000);
   }
+
+  // ---- A line sent from the Point to Point tool: /map#line=lat,lon,lat,lon&na=..&nb=.. ------
+  let p2p = null;
+  function lineFromHash() {
+    const h = new URLSearchParams(location.hash.slice(1));
+    const c = (h.get("line") || "").split(",").map(Number);
+    if (c.length !== 4 || c.some(v => !isFinite(v))) return;
+    if (p2p) map.removeLayer(p2p);
+    const A = L.latLng(c[0], c[1]), B = L.latLng(c[2], c[3]);
+    const na = h.get("na") || "A", nb = h.get("nb") || "B";
+    const d = Geo.distance(A.lat, A.lng, B.lat, B.lng), brg = Geo.bearing(A.lat, A.lng, B.lat, B.lng);
+    const end = color => ({ radius: 7, color: "#fff", weight: 2, fillColor: color, fillOpacity: 1 });
+    p2p = L.layerGroup([
+      L.polyline([A, B], { color: "#e3a33b", weight: 3 }),
+      L.circleMarker(A, end("#73b86d")).bindTooltip(`A · ${esc(na)}`, { direction: "top" }),
+      L.circleMarker(B, end("#e5573f")).bindTooltip(`B · ${esc(nb)}`, { direction: "top" }),
+    ]).addTo(map);
+    map.fitBounds(L.latLngBounds(A, B).pad(0.25), { maxZoom: 15 });
+    flash(`A → B: ${Geo.fmtDist(d)} @ ${brg.toFixed(0)}° true`);
+  }
+  window.addEventListener("hashchange", lineFromHash);
+  lineFromHash();
 })();

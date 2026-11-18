@@ -487,6 +487,54 @@ mark { background: var(--accent-soft); color: var(--accent); padding: 0 0.1em; b
 .footer { border-top: 1px solid var(--border); margin-top: 3rem; }
 .footer-inner { max-width: 1240px; margin: 0 auto; padding: 1.4rem 1.25rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
 
+/* ---------- Point to Point tool ---------- */
+.callout.ok { background: color-mix(in srgb, var(--ok) 12%, transparent); border-color: color-mix(in srgb, var(--ok) 45%, transparent); color: var(--ok); }
+.callout.ok p { color: var(--text-soft); }
+.p2p-point { display: grid; gap: 0.5rem; }
+.p2p-point + .p2p-point { margin-top: 0.4rem; }
+.p2p-find { display: grid; gap: 0.45rem; }
+.p2p-row { display: flex; gap: 0.5rem; align-items: center; }
+.p2p-row input { flex: 1; min-width: 0; }
+.p2p-row .button { white-space: nowrap; display: inline-flex; align-items: center; gap: 0.35rem; }
+.p2p-more select { flex: 1; min-width: 0; padding: 0.4rem 0.6rem; font-size: 0.9rem; }
+.p2p-picked { display: grid; gap: 0.15rem; padding: 0.65rem 0.8rem; background: var(--bg); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
+.p2p-picked .mono { font-size: 0.85rem; color: var(--text-soft); }
+.p2p-picked .hint { margin: 0; }
+.p2p-warn { color: var(--warn) !important; }
+.p2p-cands { display: grid; gap: 0.3rem; }
+.p2p-cands .hint { margin: 0.2rem 0; }
+.p2p-cand { display: grid; text-align: left; gap: 0.1rem; padding: 0.5rem 0.7rem; font: inherit; font-size: 0.92rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; overflow-wrap: anywhere; }
+.p2p-cand small { color: var(--muted); font-size: 0.78rem; }
+.p2p-cand:hover { border-color: var(--accent); }
+.p2p-cand.on { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.p2p-swap { display: flex; justify-content: center; margin: 0.9rem 0 0.5rem; }
+#result.p2p-busy { opacity: 0.55; transition: opacity 0.2s; }
+.p2p-actions { flex-wrap: wrap; }
+.p2p-legend { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-soft); margin-bottom: 0.4rem; }
+.p2p-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.p2p-legend .sw { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--accent); }
+.p2p-legend .sw.los { border-top: 2px dashed var(--text-soft); }
+.p2p-chart { position: relative; width: 100%; touch-action: pan-y; }
+.p2p-chart svg { display: block; width: 100%; height: auto; font-family: var(--font-mono); }
+.p2p-chart .grid { stroke: var(--border); stroke-width: 1; }
+.p2p-chart .axis, .p2p-chart .tick { stroke: var(--border-strong); stroke-width: 1; }
+.p2p-chart .ax { fill: var(--muted); font-size: 11px; }
+.p2p-chart .lab { fill: var(--text); font-size: 12px; font-weight: 700; }
+.p2p-chart .area { fill: var(--accent-soft); stroke: none; }
+.p2p-chart .terrain { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.p2p-chart .los { fill: none; stroke: var(--text-soft); stroke-width: 2; stroke-dasharray: 6 5; }
+.p2p-chart .end { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.p2p-chart .block { fill: var(--danger); stroke: var(--surface); stroke-width: 2; }
+.p2p-chart .cross { stroke: var(--text-soft); stroke-width: 1; }
+.p2p-chart .dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.p2p-tip { position: absolute; pointer-events: none; background: var(--surface-3); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 0.4rem 0.6rem; font-size: 0.8rem; color: var(--text-soft); line-height: 1.35; white-space: nowrap; box-shadow: var(--shadow); }
+.p2p-tip strong { color: var(--text); font-family: var(--font-mono); }
+.p2p-table { margin-top: 0.6rem; }
+.p2p-table summary { cursor: pointer; }
+.p2p-table table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 0.5rem; }
+.p2p-table th, .p2p-table td { text-align: right; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--border); }
+.p2p-table th { color: var(--muted); font-weight: 400; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 980px) {
   .article-layout, .tool-layout, .recipe-layout, .hero { grid-template-columns: 1fr; }

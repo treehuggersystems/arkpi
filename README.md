@@ -37,7 +37,7 @@ sudo ./arkpi/install.sh
 
 It asks for a Wi-Fi password (or makes one), then installs everything, starts ARK·π on every boot, and creates the **ARK Wi-Fi hotspot**.
 
-**Want offline Wikipedia and maps too?** Add `ARK_FETCH=all` to the install command (about 23 GB, needs a 64 GB+ card and the internet; see Options below):
+**Want offline Wikipedia, maps, terrain and addresses too?** Add `ARK_FETCH=all` to the install command (about 26 GB, needs a 64 GB+ card and the internet; see Options below):
 
 ```bash
 sudo ARK_FETCH=all ./arkpi/install.sh
@@ -62,7 +62,8 @@ sudo ARK_SSID=MyArk ARK_PASS='a long passphrase' ./arkpi/install.sh
 | `ARK_PASS` | asks (random if non-interactive) | Wi-Fi password, 8+ characters |
 | `ARK_HOTSPOT` | `auto` | `yes`, `no`, or `auto` (skips the hotspot if the Pi is using its Wi-Fi for its connection, so you can't lock yourself out of SSH) |
 | `ARK_HOSTNAME` | unchanged | Set the Pi's hostname |
-| `ARK_FETCH` | none | Download the big offline libraries during install: `wiki` (Wikipedia, iFixit, medical, how-to; ~21 GB), `maps` (~2 GB), or `all`. Resumable; skipped automatically if the disk is too full |
+| `ARK_FETCH` | none | Download the big offline libraries during install, comma-separated: `wiki` (Wikipedia, iFixit, medical, how-to; ~21 GB), `maps` (~2 GB), `elevation` (terrain for Point to Point, ~1.8 GB), `addresses` (offline address finder, ~0.5 GB), or `all`. Resumable; skipped automatically if the disk is too full |
+| `ARK_ELEVATION_RES` | `30` | Terrain detail in metres: `30`, or `90` (about 200 MB for the default region, for small SD cards) |
 | `ARK_REGION_BBOX` / `ARK_REGION_NAME` | Kentucky/Ohio/Indiana | Street-level map region as `west,south,east,north` and its label (pick a box at [boundingbox.klokantech.com](https://boundingbox.klokantech.com), CSV format) |
 | `ARK_DIR` | `/opt/offline-server` | Install location |
 | `ARK_REPO` / `ARK_BRANCH` | official repo / `main` | Install from a fork or branch |
@@ -86,14 +87,33 @@ Re-running the installer pulls the newest code, refreshes dependencies and resta
 Easiest: re-run the installer with `ARK_FETCH` (needs internet once; resumable):
 
 ```bash
-sudo ARK_FETCH=all /opt/offline-server/install.sh                     # wiki + maps
+sudo ARK_FETCH=all /opt/offline-server/install.sh                     # wiki + maps + elevation + addresses
 sudo ARK_FETCH=wiki /opt/offline-server/install.sh                    # just Wikipedia & friends
+sudo ARK_FETCH=elevation,addresses /opt/offline-server/install.sh     # Point to Point tool data (~2.3 GB)
 sudo ARK_FETCH=maps ARK_REGION_BBOX="-80,35,-75,38" ARK_REGION_NAME="My Area" /opt/offline-server/install.sh
 ```
 
 Or run the scripts directly: `scripts/fetch-zims.sh` and `scripts/fetch-maps.sh` (the latter needs the
 [`pmtiles`](https://github.com/protomaps/go-pmtiles/releases) tool; the installer fetches it for you).
 To download fewer libraries, edit the list at the top of `fetch-zims.sh`. See `docs/RECOMMENDED_DOWNLOADS.md` for manuals and more.
+
+</details>
+
+<details>
+<summary><b>Point to Point tool</b>: how it finds places and elevations with no internet</summary>
+
+**Tools → Point to Point** takes two places and gives the true and magnetic azimuth (degrees and mils), the back azimuth, the distance, both elevations and the change between them, grade, the terrain profile, and whether the hills block line of sight (for radio). It can draw the line on the offline map and save either point as a waypoint.
+
+A place can be a street address, town, ZIP code, `lat, lon`, DMS, UTM, an MGRS grid reference, your phone's GPS, or a saved waypoint. Behind it:
+
+| | Offline (on the ARK) | Online fallback |
+|---|---|---|
+| Addresses | US Census TIGER address ranges for your region + every US town/ZIP (`build-addresses.py`) | OpenStreetMap Nominatim |
+| Elevation | SRTM 30 m terrain tiles (`fetch-elevation.py`) | Open-Meteo (90 m) |
+| Declination | NOAA World Magnetic Model 2025 (built in, valid to 2030) | n/a |
+
+Install the offline data once with `sudo ARK_FETCH=elevation,addresses /opt/offline-server/install.sh`. Both follow your map region (`ARK_REGION_BBOX`).
+Offline addresses are placed along the street block, usually within 20–50 m of the door. Phones away from the ARK still get the distance and azimuth between coordinates.
 
 </details>
 
@@ -125,7 +145,7 @@ To download fewer libraries, edit the list at the top of `fetch-zims.sh`. See `d
 | **Offline map** | World + US + regional street maps (OpenStreetMap/Protomaps), MGRS/UTM readout, waypoints with distance & bearing |
 | **Kiwix libraries** | Wikipedia (Medicine, Simple), iFixit, WikEM, MDWiki, StackExchange (DIY, ham, mechanics, gardening…), Gutenberg (Medicine, Agriculture), Appropedia, Energypedia, zimgit post-disaster collections, more |
 | **Field manuals** | PDF library (Army FMs, Ranger Handbook…) |
-| **Tools** | Canning lookup, water & food planners, bleach dosing, recipe scaler, battery/solar sizing, generator fuel, antenna & Ohm's law & wire-drop, Morse (audio + signal lamp), sun & moon, unit converter, wind chill & heat index, timers, pantry inventory, kit checklists, logbook |
+| **Tools** | Point to Point (two addresses or grid refs → true & magnetic azimuth, distance, elevation change, terrain profile, line of sight), canning lookup, water & food planners, bleach dosing, recipe scaler, battery/solar sizing, generator fuel, antenna & Ohm's law & wire-drop, Morse (audio + signal lamp), sun & moon, unit converter, wind chill & heat index, timers, pantry inventory, kit checklists, logbook |
 | **PWA** | Installable; all articles + tools cached on the device for offline use |
 | **Themes** | Dark · Paper (daylight/print) · **Red night-vision** |
 
@@ -141,6 +161,8 @@ deploy/                systemd units (ARK, Kiwix) and nginx HTTPS site
 scripts/
   fetch-zims.sh        Download the curated Kiwix library (~21 GB)
   fetch-maps.sh        Download offline maps (~2 GB)
+  fetch-elevation.py   Download SRTM terrain tiles for the region (~1.8 GB at 30 m)
+  build-addresses.py   Build the offline address finder from US Census TIGER data (~0.5 GB)
   make-certs.sh        Local CA + HTTPS certificate (for PWA install)
   fetch-media.py       Download Books & Media (catalog: media-catalog.json, ~8 GB)
   build-bible.py       Build KJV / BSB / WEB JSON from their public-domain sources

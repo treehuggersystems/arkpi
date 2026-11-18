@@ -23,8 +23,10 @@
 #   ARK_REPO       git URL to install from       (default: the official repo)
 #   ARK_BRANCH     branch                        (default: main)
 #   ARK_DIR        install location              (default: /opt/offline-server)
-#   ARK_FETCH      big offline downloads: wiki, maps, or both as "wiki,maps" / "all"
-#                  (default: none; wiki ~21 GB, maps ~2 GB; resumable, safe to re-run)
+#   ARK_FETCH      big offline downloads, comma-separated: wiki, maps, elevation, addresses, or "all"
+#                  (default: none; wiki ~21 GB, maps ~2 GB, elevation ~1.8 GB, addresses ~0.5 GB;
+#                  resumable, safe to re-run)
+#   ARK_ELEVATION_RES  30 or 90 (metres) terrain detail     (default: 30; 90 is ~9x smaller)
 #   ARK_REGION_BBOX / ARK_REGION_NAME   map region "west,south,east,north" and its label
 #                  (default: Kentucky / Ohio / Indiana; get a box at boundingbox.klokantech.com)
 #
@@ -72,7 +74,7 @@ say "Installing Python dependencies"
 [[ -d "$DIR/venv" ]] || python3 -m venv "$DIR/venv"
 "$DIR/venv/bin/pip" install -q --upgrade pip
 "$DIR/venv/bin/pip" install -q -r "$DIR/requirements.txt"
-mkdir -p "$DIR/data" /opt/kiwix /opt/offline-data/{maps,manuals,media,imports}
+mkdir -p "$DIR/data" /opt/kiwix /opt/offline-data/{maps,manuals,media,imports,elevation,geocode}
 
 say "Installing services"
 sed "s#/opt/offline-server#$DIR#g" "$DIR/deploy/offline-server.service" > /etc/systemd/system/offline-server.service
@@ -150,7 +152,7 @@ fi
 
 # --- 6. offline libraries (optional) ---------------------------------------
 FETCH="${ARK_FETCH:-}"
-[[ "$FETCH" == "all" ]] && FETCH="wiki,maps"
+[[ "$FETCH" == "all" ]] && FETCH="wiki,maps,elevation,addresses"
 want() { [[ ",$FETCH," == *",$1,"* ]]; }
 
 free_gb() { df -BG --output=avail "$1" | tail -1 | tr -dc '0-9'; }
@@ -202,6 +204,39 @@ if want maps; then
   fi
 fi
 
+# Region: what you set, else the scripts follow the installed map region, else KY/OH/IN.
+REGION_ENV=(ARK_FETCH_REGION=1)
+[[ -n "${ARK_REGION_BBOX:-}" ]] && REGION_ENV+=(ARK_REGION_BBOX="$ARK_REGION_BBOX")
+[[ -n "${ARK_REGION_NAME:-}" ]] && REGION_ENV+=(ARK_REGION_NAME="$ARK_REGION_NAME")
+
+if want elevation; then
+  RES="${ARK_ELEVATION_RES:-30}"
+  say "Downloading terrain elevation for the Point to Point tool (${RES} m; ~1.8 GB at 30 m for the default region)"
+  NEED=$([[ "$RES" == 90 ]] && echo 1 || echo 3)
+  if [[ "$(free_gb /opt/offline-data)" -lt "$NEED" ]]; then
+    warn "less than $NEED GB free; skipping elevation (try ARK_ELEVATION_RES=90, about 200 MB)."
+    FETCH_MSG+=$'\n  elevation : skipped (not enough disk space)'
+  elif env "${REGION_ENV[@]}" "$DIR/venv/bin/python" "$DIR/scripts/fetch-elevation.py" --res "$RES"; then
+    FETCH_MSG+=$'\n  elevation : done'
+  else
+    warn "elevation download did not finish; re-run: sudo ARK_FETCH=elevation $DIR/install.sh"
+    FETCH_MSG+=$'\n  elevation : incomplete, re-run to resume'
+  fi
+fi
+
+if want addresses; then
+  say "Building the offline address finder (US Census street ranges for the region; ~0.5 GB)"
+  if [[ "$(free_gb /opt/offline-data)" -lt 2 ]]; then
+    warn "less than 2 GB free; skipping addresses."
+    FETCH_MSG+=$'\n  addresses : skipped (not enough disk space)'
+  elif env "${REGION_ENV[@]}" "$DIR/venv/bin/python" "$DIR/scripts/build-addresses.py"; then
+    FETCH_MSG+=$'\n  addresses : done'
+  else
+    warn "address download did not finish; re-run: sudo ARK_FETCH=addresses $DIR/install.sh"
+    FETCH_MSG+=$'\n  addresses : incomplete, re-run to resume'
+  fi
+fi
+
 # --- done -------------------------------------------------------------------
 sleep 2
 systemctl is-active -q offline-server || warn "offline-server is not running; check: journalctl -u offline-server -e"
@@ -215,7 +250,7 @@ $(printf '\033[1;32m')ARK·π is installed.$(printf '\033[0m')
   Install : https://$HOST.local/install    (trust the certificate once, then "Add to Home Screen")
 
 Offline libraries:${FETCH_MSG:-
-  not downloaded. Add them any time (needs internet, ~23 GB):
+  not downloaded. Add them any time (needs internet, ~26 GB):
   sudo ARK_FETCH=all $DIR/install.sh}
 
 Update later:  sudo $DIR/install.sh
